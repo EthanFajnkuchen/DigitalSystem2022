@@ -9,6 +9,10 @@
 // This program only needs to handle arguments that satisfy
 // R0 >= 0, R1 >= 0, and R0*R1 < 32768.
 
+@2	//GO TO FINAL ANSWER BOX
+M=0
+
+
 //sum=0
 @0
 D=A

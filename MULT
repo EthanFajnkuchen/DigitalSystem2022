@@ -41,6 +41,8 @@ D=M
 // if R0>=0 goto END
 @10
 D;JGT
+@LOOP
+0;JMP
 (END) // infinite loop
 @END
 0;JMP

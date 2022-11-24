@@ -9,10 +9,6 @@
 // This program only needs to handle arguments that satisfy
 // R0 >= 0, R1 >= 0, and R0*R1 < 32768.
 
-@2	//GO TO FINAL ANSWER BOX
-M=0
-
-
 //sum=0
 @0
 D=A
@@ -22,14 +18,16 @@ D=M
 //RAM[0]=R0
 @R0
 D=M
-
+@27
+D;JEQ
 //RAM[1]=R1
 @R1
 D=M
-
+@27
+D;JEQ
 (LOOP)
 // if R0<0 goto END
-@20
+@24
 D;JLE
 //R1-1
 @R1
@@ -43,10 +41,12 @@ M=D+M
 @R1
 D=M
 // if R0>=0 goto END
-@10
+@14
 D;JGT
 @LOOP
 0;JMP
 (END) // infinite loop
 @END
 0;JMP
+@R2
+M=0

@@ -40,7 +40,7 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-
+    
     Not(in=instruction[15], out=selfirstmux); // make this zero to run until stop
     Mux16(a=aluoutput, b=instruction, sel=selfirstmux, out=muxfirstoutput); //mux16 first
 
@@ -59,15 +59,15 @@ CHIP CPU {
     
   
     And(a=instruction[0], b=instruction[15], out=zeroand); 
-    Or(a=zr, b=ng, out=zrandng); 
-
-    Not(in=zrandng, out=notzrandng);
+    And(a=instruction[1], b=instruction[15], out=oneand);
+    And(a=instruction[2], b=instruction[15], out=twoand);
+    
+    Or(a=zr, b=ng, out=zrorng); 
+    Not(in=zrorng, out=notzrandng);
     And(a=zeroand, b=notzrandng, out=zeroload); //
 
-    And(a=instruction[1], b=instruction[15], out=oneand);
     And(a=oneand, b=zr, out=oneload);
 
-    And(a=instruction[2], b=instruction[15], out=twoand);
     And(a=twoand, b=ng, out=twoload);
 
     Or(a=zeroload, b=oneload, out=zerooneload);

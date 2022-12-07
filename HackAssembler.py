@@ -37,7 +37,7 @@ class Code(object):
         if 'M' in comp:  # check if A or M is in the comp
             address = '1'
             comp = comp.replace('M', 'A')  # replace the A and M by the dictionary initialization
-        address += DictionaryComp.get(comp, '000000')  # adding to the address the output from the dictionary
+        address += DictionaryComp.get(comp, '0000000')  # adding to the address the output from the dictionary
         return address
 
     def jump(self, jump):

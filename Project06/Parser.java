@@ -16,7 +16,6 @@ public class Parser {
             this.current = null;
             this.next = this.readNextLine();
             this.conmmandType = 0;
-
     }
 
     private boolean comment(String input) {
@@ -24,6 +23,7 @@ public class Parser {
         isComment = input.trim().startsWith("//");
         return isComment;
     }
+    
     public boolean hasMoreLine() {
         if (this.next != null) {return true;}
         return false;
@@ -45,7 +45,6 @@ public class Parser {
             if (nextLine.indexOf("//") != -1) {
                 nextLine = nextLine.substring(0, nextLine.indexOf("//") - 1);
             }
-
             return nextLine;
         } catch (IOException e) {
             e.printStackTrace();

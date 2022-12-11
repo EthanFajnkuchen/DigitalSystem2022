@@ -9,13 +9,11 @@ public class Parser {
     private BufferedReader bfrReader;
     private String current;
     private String next;
-    private int conmmandType;
 
     public Parser(File input) throws IOException  {
             this.bfrReader = new BufferedReader(new FileReader(input));
             this.current = null;
             this.next = this.readNextLine();
-            this.conmmandType = 0;
     }
 
     private boolean comment(String input) {

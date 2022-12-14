@@ -1,0 +1,3 @@
+java
+javac *.java
+java HackAssembler path/to/file.asm

@@ -1,32 +1,36 @@
 import java.io.*;
 
 public class Parser {
-    public static final int COMMAND_A = 1;
-    public static final int COMMAND_C = 2;
-    public static final int COMMAND_L = 3;
+    private static final int COMMAND_A = 1;
+    private static final int COMMAND_C = 2;
+    private static final int COMMAND_L = 3;
 
 
     private BufferedReader bfrReader;
     private String current;
     private String next;
-
+    
+    //making a constructer
     public Parser(File input) throws IOException  {
             this.bfrReader = new BufferedReader(new FileReader(input));
             this.current = null;
             this.next = this.readNextLine();
     }
-
+    
+    // check if we start with "//"
     private boolean comment(String input) {
         boolean isComment = false;
         isComment = input.trim().startsWith("//");
         return isComment;
     }
     
+    // check if there is more line
     public boolean hasMoreLine() {
         if (this.next != null) {return true;}
         return false;
     }
-
+    
+    // reading the next line
     public String readNextLine() throws IOException {
         try {
             String nextLine = "";
@@ -49,26 +53,29 @@ public class Parser {
             return null;
         }
     }
-
+    
+    //continue to read
     public void advance() throws IOException {
         this.current = this.next;
         this.next = this.readNextLine();
     }
-
+    
+    // returning the desired command
     public int instructionType() {
         String line = this.current.trim();
         if (line.startsWith("(") && line.endsWith(")")) {return COMMAND_L; }
         if (line.startsWith("@")) { return COMMAND_A;}
         return COMMAND_C;
         }
-
+    // returning the symbol 
     public String symbol() {
         String line = this.current.trim();
         if (this.instructionType() == COMMAND_L) { return line.substring(1,this.current.length() - 1); }
         if (this.instructionType() == COMMAND_A) { return line.substring(1);}
         return null;
     }
-
+    
+    // returning the destinations
     public String dest() {
         String line = this.current.trim();
         if (line.indexOf("=") == -1) {
@@ -77,7 +84,8 @@ public class Parser {
             return line.substring(0,line.indexOf("="));
         }
     }
-
+       
+    // returning the comp
     public String comp() {
         String line = this.current.trim();
         if (line.indexOf("=") == -1) {
@@ -91,6 +99,7 @@ public class Parser {
         }
     }
 
+    // returning the jump
     public String jump() {
         String line = this.current.trim();
         if (line.indexOf(";") == -1) {

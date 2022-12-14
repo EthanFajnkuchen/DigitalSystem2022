@@ -1,268 +1,150 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+
+/**
+ * HackAssembler.Java
+ *
+ * @author Franklin Ogidi
+ *
+ * @description Drives the process of translating code written in the Hack assembly
+ * language into machine code, according to the Hack Language specifications.
+ * This program was written as part of the NandToTetris course: https://www.nand2tetris.org/project06
+ *
+ * @version 1.0
+ *
+ */
+
+import java.io.*;
 import java.util.*;
+
 public class HackAssembler {
-    public class Parser {
-        public static final int COMMAND_A = 1;
-        public static final int COMMAND_C = 2;
-        public static final int COMMAND_L = 3;
+    private final SymbolTable symbols;  // stores pre-defined and user-defined symbols and labels
+    private int current_line;           // keeps track of the current valid line during file I/O
+    private Parser parser;              // parses Hack Assembly commands into individual parts
 
+    // constructor
+    public HackAssembler() {
+        symbols = new SymbolTable();
+        current_line = 0;
+    } // end constructor
 
-        private BufferedReader bfrReader;
-        private String current;
-        private String next;
+    /**
+     * Performs the first pass on the file specified by filename, noting only the
+     * labels. Adds label to the SymbolTable only at the first occurrence.
+     *
+     * @param filename The .asm file to parse.
+     */
 
-        public Parser(File input) throws IOException {
-            this.bfrReader = new BufferedReader(new FileReader(input));
-            this.current = null;
-            this.next = this.readNextLine();
-        }
+    /**
+     * Performs the first pass on the file specified by filename, noting only the
+     * labels. Adds label to the SymbolTable only at the first occurrence.
+     *
+     * @param filename The .asm file to parse.
+     */
+    private void first_pass(final String filename) {
+        try {
+            boolean parse_success; // flag for parse error
+            File file = new File(filename);
+            this.parser = new Parser(file);
+            while (parser.hasMoreLine()) {
+                String line = parser.getCurrent();
+                parse_success = parser.comment(line);
+                if (parse_success) {
+                    if (line.trim().charAt(0) == '(') { // checking for labels [ eg. (LABEL) ]
 
-        private boolean comment(String input) {
-            boolean isComment = false;
-            isComment = input.trim().startsWith("//");
-            return isComment;
-        }
+                        // extract the label's symbol
+                        final String symbol = parser.symbol();
 
-        public boolean hasMoreLine() {
-            if (this.next != null) {return true;}
-            return false;
-        }
-
-        public String readNextLine() throws IOException {
-            try {
-                String nextLine = "";
-                nextLine = this.bfrReader.readLine();
-                if (nextLine == null) {
-                    return null;
+                        // add label to SymbolTable if it is not already present
+                        symbols.addEntry(symbol,this.current_line);
+                        this.current_line -- ;
+                    }
+                    this.current_line ++;
                 }
-                while (nextLine.trim().isEmpty() || this.comment(nextLine)) {
-                    nextLine = this.bfrReader.readLine();
-                    if (nextLine == null) {
-                        return null;
+                this.parser.advance();
+            }
+        } catch (final IOException ioe) {
+            System.out.println(ioe);
+            return;
+        }
+    } // end first pass
+
+    /**
+     * Translates a Hack Assembly file (.asm) into machine code (.hack file)
+     * according to the Hack Machine Language specifications, after the first pass.
+     *
+     * @param filename The assembly file to translate into machine code
+     */
+    private void translate(final String filename) {
+        try {
+            final String output_filename = filename.substring(0, filename.indexOf(".")) + ".hack"; // change file
+            // extension from
+            // .asm to .hack
+            File file = new File(filename);
+            this.parser = new Parser(file);
+            final PrintWriter output = new PrintWriter(output_filename);
+            this.current_line =0; // reset counter for current line
+            boolean parse_success; // flag for parsing error
+
+            while (this.parser.hasMoreLine()) {
+                String line = this.parser.getCurrent();
+                parse_success = this.parser.comment(this.parser.getCurrent());
+                if (parse_success && line.trim().charAt(0) != '(') { // label declarations don't count
+                    if (this.parser.symbol() == null) { // parsing a C-instruction
+                        final String comp = Code.comp(this.parser.comp());
+                        final String dest = Code.dest(this.parser.dest());
+                        final String jump = Code.jump(this.parser.jump());
+                        output.printf("111" + comp + dest + jump);
+                    } else { // parsing an A-instruction
+                        final String var = this.parser.symbol();
+
+                        final Scanner sc = new Scanner(var);
+                        if (sc.hasNextInt()) { // check if var is an integer
+                            final String addr_binary = Integer.toBinaryString(Integer.parseInt(var)); // convert to
+                            // binary
+                            output.println(pad_binary(addr_binary)); // write 16-bit binary to output
+                        } else {
+                            symbols.addEntry(var, symbols.getRegiserNum());
+                            final String addr_binary = Integer.toBinaryString(symbols.getAddress(var));
+                            output.println(pad_binary(addr_binary));
+                        }
+                        sc.close();
                     }
                 }
-                if (nextLine.indexOf("//") != -1) {
-                    nextLine = nextLine.substring(0, nextLine.indexOf("//") - 1);
-                }
-                return nextLine;
-            } catch (IOException e) {
-                e.printStackTrace();
-                return null;
+                this.parser.advance();
             }
+            this.parser.closebuff();
+            output.close();
+        } catch (final IOException ioe) {
+            System.out.println(ioe);
+            return;
+        }
+    } // end translate
+    /**
+     * Pads a binary String with zeros to ensure 16-bit binary format
+     *
+     * @param unpadded_binary The binary String without leading zeros
+     * @return A 16-bit binary String with leading zeros where necessary
+     */
+    private String pad_binary(final String unpadded_binary) {
+        String padded_binary = "";
+        final int num_zeros = 16 - unpadded_binary.length();
+
+        for (int i = 0; i < num_zeros; i++) {
+            padded_binary += "0";
         }
 
-        public void advance() throws IOException {
-            this.current = this.next;
-            this.next = this.readNextLine();
-        }
+        return padded_binary + unpadded_binary;
+    } // end pad_binary
 
-        public int instructionType() {
-            String line = this.current.trim();
-            if (line.startsWith("(") && line.endsWith(")")) {return COMMAND_L; }
-            if (line.startsWith("@")) { return COMMAND_A;}
-            return COMMAND_C;
-        }
-
-        public String symbol() {
-            String line = this.current.trim();
-            if (this.instructionType() == COMMAND_L) { return line.substring(1,this.current.length() - 1); }
-            if (this.instructionType() == COMMAND_A) { return line.substring(1);}
-            return null;
-        }
-
-        public String dest() {
-            String line = this.current.trim();
-            if (line.indexOf("=") == -1) {
-                return null;
-            } else {
-                return line.substring(0,line.indexOf("="));
-            }
-        }
-
-        public String comp() {
-            String line = this.current.trim();
-            if (line.indexOf("=") == -1) {
-                line = line.substring(line.indexOf("=") + 1);
-            }
-
-            if (line.indexOf(";") == -1) {
-                return line;
-            } else {
-                return line.substring(0,line.indexOf(";"));
-            }
-        }
-
-        public String jump() {
-            String line = this.current.trim();
-            if (line.indexOf(";") == -1) {
-                return null;
-            } else {
-                return line.substring(line.indexOf(";") + 1);
-            }
-        }
-    }
-    public class Code {
-        private Hashtable<String,String> destTable;
-        private Hashtable<String,String> compTable;
-        private Hashtable<String,String> jumpTable;
-
-        //making the constructor
-        public Code() {
-            this.destTable = new Hashtable<String, String>();
-            this.initializationDestTable();
-            this.compTable = new Hashtable<String, String>();
-            this.initializationCompTable();
-            this.jumpTable = new Hashtable<String, String>();
-            this.initializationJumpTable();
-        }
-        //the dictionary init
-        private void initializationJumpTable() {
-            this.jumpTable.put("NULL", "000");
-            this.jumpTable.put("JGT", "001");
-            this.jumpTable.put("JEQ", "010");
-            this.jumpTable.put("JGE", "011");
-            this.jumpTable.put("JLT", "100");
-            this.jumpTable.put("JNE", "101");
-            this.jumpTable.put("JLE", "110");
-            this.jumpTable.put("JMP", "111");
-        }
-
-        private void initializationCompTable() {
-            this.compTable.put("0", "0101010");
-            this.compTable.put("1", "0111111");
-            this.compTable.put("-1", "0111010");
-            this.compTable.put("D", "0001100");
-            this.compTable.put("A", "0110000");
-            this.compTable.put("M", "1110000");
-            this.compTable.put("!D", "0001101");
-            this.compTable.put("!A", "0110001");
-            this.compTable.put("!M", "1110001");
-            this.compTable.put("-D", "0001111");
-            this.compTable.put("-A", "0110011");
-            this.compTable.put("-M", "1110011");
-            this.compTable.put("D+1", "0011111");
-            this.compTable.put("A+1", "0110111");
-            this.compTable.put("M+1", "1110111");
-            this.compTable.put("D-1", "0001110");
-            this.compTable.put("A-1", "0110010");
-            this.compTable.put("M-1", "1110010");
-            this.compTable.put("D+A", "0000010");
-            this.compTable.put("D+M", "1000010");
-            this.compTable.put("D-A", "0010011");
-            this.compTable.put("D-M", "1010011");
-            this.compTable.put("A-D", "0000111");
-            this.compTable.put("M-D", "1000111");
-            this.compTable.put("D&A", "0000000");
-            this.compTable.put("D&M", "1000000");
-            this.compTable.put("D|A", "0010101");
-            this.compTable.put("D|M", "1010101");
-        }
-
-        private void initializationDestTable() {
-            this.destTable.put("NULL", "000");
-            this.destTable.put("M", "001");
-            this.destTable.put("D", "010");
-            this.destTable.put("MD", "011");
-            this.destTable.put("A", "100");
-            this.destTable.put("AM", "101");
-            this.destTable.put("AD", "110");
-            this.destTable.put("AMD", "111");
-        }
-
-        public String binary(String input) {
-            int number = Integer.parseInt(input);
-            String inBinary = Integer.toBinaryString(number);
-            String str = "";
-            for(int i = 0;i < 15 - inBinary.length(); i++) {
-                str += "0";
-            }
-            String completeBinary = str + inBinary;
-            return completeBinary;
-        }
-
-        // return the jump from the dictionaries
-        public String jump(String key) {
-            if (key == null || key.isEmpty()) {
-                key = "NULL";
-            }
-
-            return this.jumpTable.get(key);
-        }
-
-        // return the comp from the dictionaries
-        public String comp(String key) {
-            return this.compTable.get(key);
-        }
-
-        // return the destination from the dictionaries
-        public String dest(String key) {
-            if (key == null || key.isEmpty()) {
-                key = "NULL";
-            }
-            return this.destTable.get(key);
-        }
-
-        // to string function
-        public String toString()
-        {
-            return this.destTable.toString() + '\n' + this.destTable.toString() + '\n' + this.jumpTable.toString() ;
-        }
-    }
-    public class SymbolTable{
-        private Hashtable<String,String> DictionarySymbolTable; // taking to initialize dictionary
-        private static final int START=16; //As the program start
-        public SymbolTable() //making the constructor
-        {
-            this.DictionarySymbolTable = new Hashtable<String, String>();
-            initializationDictionarySymbolTable();
-        }
-        //the dictionary init
-        private void initializationDictionarySymbolTable() {
-            this.DictionarySymbolTable.put("R0", "000000000000000");
-            this.DictionarySymbolTable.put("R1", "000000000000001");
-            this.DictionarySymbolTable.put("R2", "000000000000010");
-            this.DictionarySymbolTable.put("R3", "000000000000011");
-            this.DictionarySymbolTable.put("R4", "000000000000100");
-            this.DictionarySymbolTable.put("R5", "000000000000101");
-            this.DictionarySymbolTable.put("R6", "000000000000110");
-            this.DictionarySymbolTable.put("R7", "000000000000111");
-            this.DictionarySymbolTable.put("R8", "000000000001000");
-            this.DictionarySymbolTable.put("R9", "000000000001001");
-            this.DictionarySymbolTable.put("R10", "000000000001010");
-            this.DictionarySymbolTable.put("R11", "000000000001011");
-            this.DictionarySymbolTable.put("R12", "000000000001100");
-            this.DictionarySymbolTable.put("R13", "000000000001101");
-            this.DictionarySymbolTable.put("R14", "000000000001110");
-            this.DictionarySymbolTable.put("R15", "000000000001111");
-            this.DictionarySymbolTable.put("SP", "000000000000000");
-            this.DictionarySymbolTable.put("LCL", "000000000000001");
-            this.DictionarySymbolTable.put("ARG", "000000000000010");
-            this.DictionarySymbolTable.put("THIS", "000000000000011");
-            this.DictionarySymbolTable.put("THAT", "000000000000100");
-            this.DictionarySymbolTable.put("SCREEN", "100000000000000");
-            this.DictionarySymbolTable.put("KBD", "110000000000000");
-        }
-        public void addEntry (String symbol ,String address)
-        {
-            this.DictionarySymbolTable.put(symbol,address);
-        }
-        // check if there is symbol in this Dictionary
-        public boolean contains(String symbol)
-        {
-            return this.DictionarySymbolTable.containsKey(symbol);
-        }
-        // return the address
-        public String getAddress(String symbol)
-        {
-            return this.DictionarySymbolTable.get(symbol);
-        }
-        // to string function
-        public String toString()
-        {
-            return this.DictionarySymbolTable.toString();
-        }
-    }
-}
+    /**
+     * Interface for running the Hack Assembler in the command line in the following
+     * format: $ java HackAssembler filename
+     *
+     * @param args only the filename argument is supported
+     */
+    public static void main(final String[] args) {
+        final String filename = args[0];
+        final HackAssembler assembly = new HackAssembler();
+        assembly.first_pass(filename);
+        assembly.translate(filename);
+    } // end main
+} // end HackAssembler class

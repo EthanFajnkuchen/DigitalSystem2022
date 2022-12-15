@@ -1,59 +1,43 @@
-
-/**
- * HackAssembler.Java
- *
- * @author Franklin Ogidi
- *
- * @description Drives the process of translating code written in the Hack assembly
- * language into machine code, according to the Hack Language specifications.
- * This program was written as part of the NandToTetris course: https://www.nand2tetris.org/project06
- *
- * @version 1.0
- *
- */
-
 import java.io.*;
 import java.util.*;
 
 public class HackAssembler {
-    private final SymbolTable symbols;  // stores pre-defined and user-defined symbols and labels
-    private int current_line;           // keeps track of the current valid line during file I/O
-    private Parser parser;              // parses Hack Assembly commands into individual parts
+    private final SymbolTable symbols;  // stores the SymbolTable
+    private int current_line;           // the valid line
+    private Parser parser;              // making a parser for the HackAssembly commands
 
-    // constructor
+    // making the constructor
     public HackAssembler() {
         symbols = new SymbolTable();
         current_line = 0;
-    } // end constructor
+    }
+    
+    // returning a binary String with length 16 whit zeros where we need
+    private String ToBinary(final String NonBinary) {
+        String IsBinary = "";
+        int zero = 16 - NonBinary.length();
 
-    /**
-     * Performs the first pass on the file specified by filename, noting only the
-     * labels. Adds label to the SymbolTable only at the first occurrence.
-     *
-     * @param filename The .asm file to parse.
-     */
+        for (int i = 0; i < zero; i++) {
+            IsBinary += "0";
+        }
 
-    /**
-     * Performs the first pass on the file specified by filename, noting only the
-     * labels. Adds label to the SymbolTable only at the first occurrence.
-     *
-     * @param filename The .asm file to parse.
-     */
-    private void first_pass(final String filename) {
+        return IsBinary + NonBinary;
+    }
+    
+    // Adds label to the SymbolTable only at the first meeting
+    private void OnlyLabel(final String filename) {
         try {
-            boolean parse_success; // flag for parse error
+            boolean isWorking; // if It's valid or not
             File file = new File(filename);
             this.parser = new Parser(file);
             while (parser.hasMoreLine()) {
                 String line = parser.getCurrent();
-                parse_success = parser.comment(line);
-                if (parse_success) {
-                    if (line.trim().charAt(0) == '(') { // checking for labels [ eg. (LABEL) ]
+                isWorking = parser.comment(line);
+                if (isWorking) {
+                    if (parser.IsItLabel()) { // if its label or not
 
-                        // extract the label's symbol
-                        final String symbol = parser.symbol();
-
-                        // add label to SymbolTable if it is not already present
+                        String symbol = parser.symbol(); //returning the symbol
+                        // add label's to SymbolTable
                         symbols.addEntry(symbol,this.current_line);
                         this.current_line -- ;
                     }
@@ -61,50 +45,44 @@ public class HackAssembler {
                 }
                 this.parser.advance();
             }
-        } catch (final IOException ioe) {
-            System.out.println(ioe);
+        } catch (IOException e) {
+            System.out.println(e);
             return;
         }
     } // end first pass
 
-    /**
-     * Translates a Hack Assembly file (.asm) into machine code (.hack file)
-     * according to the Hack Machine Language specifications, after the first pass.
-     *
-     * @param filename The assembly file to translate into machine code
-     */
-    private void translate(final String filename) {
+    // Translates a Hack Assembly file into machine code file (from .asm to .hack
+    private void SwitchTranslate(String filename) {
         try {
-            final String output_filename = filename.substring(0, filename.indexOf(".")) + ".hack"; // change file
-            // extension from
-            // .asm to .hack
+            final String outfile = filename.substring(0, filename.indexOf(".")) + ".hack"; // change file
             File file = new File(filename);
             this.parser = new Parser(file);
-            final PrintWriter output = new PrintWriter(output_filename);
+            final PrintWriter output = new PrintWriter(outfile);
             this.current_line =0; // reset counter for current line
-            boolean parse_success; // flag for parsing error
+            boolean isWorking; // flag for parsing error
 
             while (this.parser.hasMoreLine()) {
                 String line = this.parser.getCurrent();
-                parse_success = this.parser.comment(this.parser.getCurrent());
-                if (parse_success && line.trim().charAt(0) != '(') { // label declarations don't count
-                    if (this.parser.symbol() == null) { // parsing a C-instruction
+                isWorking = this.parser.comment(this.parser.getCurrent());
+                if (isWorking && !parser.IsItLabel()) { // what with label don't count
+                    if (this.parser.symbol() == null) { // making the instructions
                         final String comp = Code.comp(this.parser.comp());
-                        final String dest = Code.dest(this.parser.dest());
                         final String jump = Code.jump(this.parser.jump());
-                        output.printf("111" + comp + dest + jump);
-                    } else { // parsing an A-instruction
+                        final String dest = Code.dest(this.parser.dest());
+                        output.printf("111" + comp + dest + jump); // returning the 16 binary output
+                    }
+                    // making the A-instruction
+                    else
+                    {
                         final String var = this.parser.symbol();
-
                         final Scanner sc = new Scanner(var);
                         if (sc.hasNextInt()) { // check if var is an integer
-                            final String addr_binary = Integer.toBinaryString(Integer.parseInt(var)); // convert to
-                            // binary
-                            output.println(pad_binary(addr_binary)); // write 16-bit binary to output
+                            String address = Integer.toBinaryString(Integer.parseInt(var)); // convert to binary
+                            output.println(ToBinary(address)); // write as binary
                         } else {
-                            symbols.addEntry(var, symbols.getRegiserNum());
-                            final String addr_binary = Integer.toBinaryString(symbols.getAddress(var));
-                            output.println(pad_binary(addr_binary));
+                            symbols.addEntry(var, symbols.getRegisterNum());
+                            String address = Integer.toBinaryString(symbols.getAddress(var));
+                            output.println(ToBinary(address));
                         }
                         sc.close();
                     }
@@ -117,34 +95,13 @@ public class HackAssembler {
             System.out.println(ioe);
             return;
         }
-    } // end translate
-    /**
-     * Pads a binary String with zeros to ensure 16-bit binary format
-     *
-     * @param unpadded_binary The binary String without leading zeros
-     * @return A 16-bit binary String with leading zeros where necessary
-     */
-    private String pad_binary(final String unpadded_binary) {
-        String padded_binary = "";
-        final int num_zeros = 16 - unpadded_binary.length();
-
-        for (int i = 0; i < num_zeros; i++) {
-            padded_binary += "0";
-        }
-
-        return padded_binary + unpadded_binary;
-    } // end pad_binary
-
-    /**
-     * Interface for running the Hack Assembler in the command line in the following
-     * format: $ java HackAssembler filename
-     *
-     * @param args only the filename argument is supported
-     */
-    public static void main(final String[] args) {
-        final String filename = args[0];
-        final HackAssembler assembly = new HackAssembler();
-        assembly.first_pass(filename);
-        assembly.translate(filename);
-    } // end main
-} // end HackAssembler class
+    }
+    
+    //the main program
+    public static void main(String[] args) {
+        String filename = args[0];
+        HackAssembler hack = new HackAssembler();
+        hack.OnlyLabel(filename);
+        hack.SwitchTranslate(filename);
+    }
+}

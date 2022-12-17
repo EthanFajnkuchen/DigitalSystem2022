@@ -5,10 +5,8 @@ import sys
 class Parser:
 
     def __init__(self, file_name):
-        self.command = ""
         self.curr = -1
         self.commands = []
-
         file = open(file_name)
         for line in file:
             line = line.partition("//")[0]
@@ -25,27 +23,31 @@ class Parser:
     # Go to the next instruction and make it current
     def advance(self):
         self.curr += 1
-        self.command = self.commands[self.curr]
+        self.commands = self.commands[self.curr]
 
     # Returns a constant representing the type of the correct command
     def CommandType(self):
-        if "push" in self:
+        if "push" in self.commands:
             return "C_PUSH"
-        elif "pop" in self:
+        elif "pop" in self.commands:
             return "C_POP"
-        elif "add" or "sub" or "neg" or "eq" or "gt" or "lt" or "and" or "and" or "or" or "not" in self:
+        elif "add" or "sub" or "neg" or "eq" or "gt" or "lt" or "and" or "and" or "or" or "not" in self.commands:
             return "C_ARITHMETIC"
 
     def arg1(self):
-        if self.commandtype() == "C_PUSH":
+        """
+                if self.commandtype() == "C_PUSH":
             return "push"
         elif self.commandtype() == "C_ARITHMETIC":
             return self()
         elif self.commandtype() == "C_POP":
             return "pop"
+        :return:
+        """
+        return self.commands[1]
 
     def arg2(self):
-        return int(self.split(" ")[1])
+        return int(self.commands[2])
 
 
 class CodeWriter(object):
@@ -159,9 +161,9 @@ class CodeWriter(object):
 
 
 def main():
-    root = sys.argv[1]
-    parser = Parser(root + ".vm")
-    writer = CodeWriter(root + ".asm")
+    file = sys.argv[1]
+    parser = Parser(file + ".vm")
+    writer = CodeWriter(file + ".asm")
     while parser.hasMoreLines():
         parser.advance()
         type = parser.CommandType()

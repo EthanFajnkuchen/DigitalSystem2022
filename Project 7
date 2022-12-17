@@ -171,6 +171,7 @@ def main():
             writer.WritePushPop(type, parser.arg1(), parser.arg2())
         elif type == "C_ARITHMETIC":
             writer.writeArithmetic(type)
+    writer.close()
 
 
 if __name__ == "__main__":

@@ -1,0 +1,175 @@
+#!/usr/bin/python
+import sys
+
+
+class Parser:
+
+    def __init__(self, file_name):
+        self.command = ""
+        self.curr = -1
+        self.commands = []
+
+        file = open(file_name)
+        for line in file:
+            line = line.partition("//")[0]
+            line = line.strip()
+            line = line.replace(" ", "")
+            if line:
+                self.commands.append(line)
+        file.close()
+
+    # Check if we finished to parse the file
+    def hasMoreLines(self):
+        return (self.curr + 1) < len(self.commands)
+
+    # Go to the next instruction and make it current
+    def advance(self):
+        self.curr += 1
+        self.command = self.commands[self.curr]
+
+    # Returns a constant representing the type of the correct command
+    def CommandType(self):
+        if "push" in self:
+            return "C_PUSH"
+        elif "pop" in self:
+            return "C_POP"
+        elif "add" or "sub" or "neg" or "eq" or "gt" or "lt" or "and" or "and" or "or" or "not" in self:
+            return "C_ARITHMETIC"
+
+    def arg1(self):
+        if self.commandtype() == "C_PUSH":
+            return "push"
+        elif self.commandtype() == "C_ARITHMETIC":
+            return self()
+        elif self.commandtype() == "C_POP":
+            return "pop"
+
+    def arg2(self):
+        return int(self.split(" ")[1])
+
+
+class CodeWriter(object):
+
+    def __init__(self, filename):
+        self.output_file = filename.replace(".vm", ".asm")  # Change the type of the file output to hack
+        self.label = 0  # counting the labels
+        open(self.output_file, "w")
+
+    def writeArithmetic(self, command):
+        CommandDictionary = {
+            "add": "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nM=D+M\n@SP\nM=M+1\n",
+            "sub": "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nM=M-D\n@SP\nM=M+1\n",
+            "neg": "@SP\nA=M-1\nM=-M\n",
+            "not": "@SP\nA=M-1\nM=!M\n",
+            "or": "@SP\nAM=M-1\nD=M\n@SP\nA=M-1\nM=D|M\n",
+            "and": "@SP\nAM=M-1\nD=M\n@SP\nA=M-1\nM=D&M\n",
+            "eq": "@SP\nAM=M-1\nD=M\n@SP\nA=M-1\nD=M-D\nM=-1\n@eqTrue" + self.label + "\nD;JEQ\n@SP\nA=M-1\nM=0\n("
+                                                                                      "eqTrue" + self.label + ")\n",
+            "gt": "@SP\nAM=M-1\nD=M\n@SP\nA=M-1\nD=M-D\nM=-1\n@gtTrue" + self.label + "\nD;JGT\n@SP\nA=M-1\nM=0\n("
+                                                                                      "gtTrue" + self.label + ")\n ",
+            "lt": "@SP\nAM=M-1\nD=M\n@SP\nA=M-1\nD=M-D\nM=-1\n@ltTrue" + self.label + "\nD;JLT\n@SP\nA=M-1\nM=0\n("
+                                                                                      "ltTrue" + self.label + ")\n "
+        }
+        if CommandDictionary[command] is not None:
+            self.output_file.write(CommandDictionary[command])
+            if command == "eq" or "lt" or "gt":
+                self.label += 1
+
+    def WritePushPop(self, command, segment, index):
+        SegmentDictionary = {
+            "constant C_PUSH": "@" + index + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
+            "static C_PUSH": "@" + index + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
+            "static C_POP": "@SP\nAM=M-1\nD=M\n@" + index + "\nM=D\n",
+            "pointer C_PUSH": "@" + index + "\nD=A\n@3\nA=A+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
+            "pointer C_POP": "@" + index + "\nD=A\n@3\nD=A+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n",
+            "this C_PUSH": "@" + index + "\nD=A\n@THIS\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
+            "this C_POP": "@" + index + "\nD=A\n@THIS\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n",
+            "that C_PUSH": "@" + index + "\nD=A\n@THAT\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
+            "that C_POP": "@" + index + "\nD=A\n@THAT\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n",
+            "argument C_PUSH": "@" + index + "\nD=A\n@ARG\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
+            "argument C_POP": "@" + index + "\nD=A\n@ARG\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n",
+            "local C_PUSH": "@" + index + "\nD=A\n@LCL\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n",
+            "local C_POP": "@" + index + "\nD=A\n@LCL\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
+            "temp C_PUSH": "@" + index + "\nD=A\n@5\nA=A+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
+            "temp C_POP": "@" + index + "\nD=A\n@5\nD=A+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n",
+        }
+        com = segment + " " + command
+        if SegmentDictionary[com] is not None:
+            self.output_file.write(SegmentDictionary[com])
+        '''
+        if segment == "constant":
+            self.SegmentDictionary["SP"] += 1
+            segm = self.SegmentDictionary["SP"] + index
+            if command == "C_PUSH":
+                self.output_file.write("@" + index + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+        elif segment == "static":
+            segm = self.SegmentDictionary["static"] + index
+            self.SegmentDictionary["static"] += 1
+            if command == "C_PUSH":
+                self.output_file.write("@" + index + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+            elif command == "C_POP":
+                self.output_file.write("@SP\nAM=M-1\nD=M\n@" + index + "\nM=D\n")
+        elif segment == "pointer":
+            if int(self.split(" ")[1]) == 0:
+                segm = self.SegmentDictionary["THIS"] + index
+            elif int(self.split(" ")[1]) == 1:
+                segm = self.SegmentDictionary["THAT"] + index
+            if command == "C_PUSH":
+                self.output_file.write("@" + index + "\nD=A\n@3\nA=A+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+            elif command == "C_POP":
+                self.output_file.write("@" + index + "\nD=A\n@3\nD=A+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n")
+        elif segment == "this":
+            segm = segment.SegmentDictionary() + index
+            if command == "C_PUSH":
+                self.output_file.write("@" + index + "\nD=A\n@THIS\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+            elif command == "C_POP":
+                self.output_file.write("@" + index + "\nD=A\n@THIS\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM"
+                                                     "=D\n")
+        elif segment == "that":
+            segm = segment.SegmentDictionary() + index
+            if command == "C_PUSH":
+                self.output_file.write("@" + index + "\nD=A\n@THAT\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+            elif command == "C_POP":
+                self.output_file.write("@" + index + "\nD=A\n@THAT\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM"
+                                                     "=D\n")
+        elif segment == "argument":
+            segm = segment.SegmentDictionary() + index
+            if command == "C_PUSH":
+                self.output_file.write("@" + index + "\nD=A\n@ARG\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+            elif command == "C_POP":
+                self.output_file.write(
+                    "@" + index + "\nD=A\n@ARG\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n")
+        elif segment == "local":
+            segm = segment.SegmentDictionary() + index
+            if command == "C_PUSH":
+                self.output_file.write(
+                    "@" + index + "\nD=A\n@LCL\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n")
+            elif command == "C_POP":
+                self.output_file.write("@" + index + "\nD=A\n@LCL\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+        elif segment == "temp":
+            segm = segment.SegmentDictionary() + index
+            if command == "C_PUSH":
+                self.output_file.write("@" + index + "\nD=A\n@5\nA=A+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+            elif command == "C_POP":
+                self.output_file.write("@" + index + "\nD=A\n@5\nD=A+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n")
+        '''
+
+    def close(self):
+        self.output_file.close()
+
+
+def main():
+    root = sys.argv[1]
+    parser = Parser(root + ".vm")
+    writer = CodeWriter(root + ".asm")
+    while parser.hasMoreLines():
+        parser.advance()
+        type = parser.CommandType()
+        if type == "C_PUSH" or "C_POP":
+            writer.WritePushPop(type, parser.arg1(), parser.arg2())
+        elif type == "C_ARITHMETIC":
+            writer.writeArithmetic(type)
+
+
+if __name__ == "__main__":
+    main()

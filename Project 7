@@ -35,19 +35,16 @@ class Parser:
             return "C_ARITHMETIC"
 
     def arg1(self):
-        """
-                if self.commandtype() == "C_PUSH":
+        if self.commandtype() == "C_PUSH":
             return "push"
         elif self.commandtype() == "C_ARITHMETIC":
-            return self()
+            return self.commands[1]
         elif self.commandtype() == "C_POP":
             return "pop"
-        :return:
-        """
-        return self.commands[1]
 
     def arg2(self):
-        return int(self.commands[2])
+        if self.commandtype() == "C_POP" or self.commandtype() == "C_PUSH":
+            return int(self.commands[2])
 
 
 class CodeWriter(object):

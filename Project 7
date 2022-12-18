@@ -40,13 +40,13 @@ class Parser:
         if self.commandtype() == "C_PUSH":
             return "push"
         elif self.commandtype() == "C_ARITHMETIC":
-            return self.commands[self.curr].split()[1]
+            return self.commands[0].split()[1]
         elif self.commandtype() == "C_POP":
             return "pop"
 
     def arg2(self):
         if self.commandtype() == "C_POP" or self.commandtype() == "C_PUSH":
-            return int(self.commands[self.curr].split()[2])
+            return int(self.commands[0].split()[2])
 
 
 class CodeWriter(object):

@@ -22,29 +22,31 @@ class Parser:
 
     # Go to the next instruction and make it current
     def advance(self):
-        self.curr += 1
-        self.commands = self.commands[self.curr]
+        if self.hasMoreLines():
+            self.curr += 1
+            self.commands = self.commands[self.curr]
 
     # Returns a constant representing the type of the correct command
     def CommandType(self):
-        if "push" in self.commands:
+        command = self.commands[self.curr].split()[1]
+        if "push" == command:
             return "C_PUSH"
-        elif "pop" in self.commands:
+        elif "pop" == command:
             return "C_POP"
-        elif "add" or "sub" or "neg" or "eq" or "gt" or "lt" or "and" or "and" or "or" or "not" in self.commands:
+        elif "add" or "sub" or "neg" or "eq" or "gt" or "lt" or "and" or "and" or "or" or "not" == command:
             return "C_ARITHMETIC"
 
     def arg1(self):
         if self.commandtype() == "C_PUSH":
             return "push"
         elif self.commandtype() == "C_ARITHMETIC":
-            return self.commands[1]
+            return self.commands[self.curr].split()[1]
         elif self.commandtype() == "C_POP":
             return "pop"
 
     def arg2(self):
         if self.commandtype() == "C_POP" or self.commandtype() == "C_PUSH":
-            return int(self.commands[2])
+            return int(self.commands[self.curr].split()[2])
 
 
 class CodeWriter(object):
@@ -95,64 +97,6 @@ class CodeWriter(object):
         com = segment + " " + command
         if SegmentDictionary[com] is not None:
             self.output_file.write(SegmentDictionary[com])
-        '''
-        if segment == "constant":
-            self.SegmentDictionary["SP"] += 1
-            segm = self.SegmentDictionary["SP"] + index
-            if command == "C_PUSH":
-                self.output_file.write("@" + index + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
-        elif segment == "static":
-            segm = self.SegmentDictionary["static"] + index
-            self.SegmentDictionary["static"] += 1
-            if command == "C_PUSH":
-                self.output_file.write("@" + index + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
-            elif command == "C_POP":
-                self.output_file.write("@SP\nAM=M-1\nD=M\n@" + index + "\nM=D\n")
-        elif segment == "pointer":
-            if int(self.split(" ")[1]) == 0:
-                segm = self.SegmentDictionary["THIS"] + index
-            elif int(self.split(" ")[1]) == 1:
-                segm = self.SegmentDictionary["THAT"] + index
-            if command == "C_PUSH":
-                self.output_file.write("@" + index + "\nD=A\n@3\nA=A+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
-            elif command == "C_POP":
-                self.output_file.write("@" + index + "\nD=A\n@3\nD=A+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n")
-        elif segment == "this":
-            segm = segment.SegmentDictionary() + index
-            if command == "C_PUSH":
-                self.output_file.write("@" + index + "\nD=A\n@THIS\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
-            elif command == "C_POP":
-                self.output_file.write("@" + index + "\nD=A\n@THIS\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM"
-                                                     "=D\n")
-        elif segment == "that":
-            segm = segment.SegmentDictionary() + index
-            if command == "C_PUSH":
-                self.output_file.write("@" + index + "\nD=A\n@THAT\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
-            elif command == "C_POP":
-                self.output_file.write("@" + index + "\nD=A\n@THAT\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM"
-                                                     "=D\n")
-        elif segment == "argument":
-            segm = segment.SegmentDictionary() + index
-            if command == "C_PUSH":
-                self.output_file.write("@" + index + "\nD=A\n@ARG\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
-            elif command == "C_POP":
-                self.output_file.write(
-                    "@" + index + "\nD=A\n@ARG\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n")
-        elif segment == "local":
-            segm = segment.SegmentDictionary() + index
-            if command == "C_PUSH":
-                self.output_file.write(
-                    "@" + index + "\nD=A\n@LCL\nD=M+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n")
-            elif command == "C_POP":
-                self.output_file.write("@" + index + "\nD=A\n@LCL\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
-        elif segment == "temp":
-            segm = segment.SegmentDictionary() + index
-            if command == "C_PUSH":
-                self.output_file.write("@" + index + "\nD=A\n@5\nA=A+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
-            elif command == "C_POP":
-                self.output_file.write("@" + index + "\nD=A\n@5\nD=A+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n")
-        '''
-
     def close(self):
         self.output_file.close()
 

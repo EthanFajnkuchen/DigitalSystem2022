@@ -50,6 +50,7 @@ class CodeWriter:
 
     def __init__(self, file):
         self.fileWriter = open(file, "w")
+        self.root = file[:-4].split('/')[-1]
         self.label = 0
         self.dict_of_symbols = {"add": "M=D+M",
                                 "sub": "M=M-D",
@@ -88,8 +89,8 @@ class CodeWriter:
     def WritePushPop(self, command, segment, index):
         SegmentDictionary = {
             "constant C_PUSH": "@" + str(index) + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
-            "static C_PUSH": "@" + str(index) + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
-            "static C_POP": "@SP\nAM=M-1\nD=M\n@" + str(index) + "\nM=D\n",
+            "static C_PUSH": "@" + self.root + "." + str(index) + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
+            "static C_POP": "@SP\nAM=M-1\nD=M\n@" + self.root + "." + str(index) + "\nM=D\n",
             "pointer C_PUSH": "@" + str(index) + "\nD=A\n@3\nA=A+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
             "pointer C_POP": "@" + str(index) + "\nD=A\n@3\nD=A+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n",
             "this C_PUSH": "@" + str(index) + "\nD=A\n@THIS\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",

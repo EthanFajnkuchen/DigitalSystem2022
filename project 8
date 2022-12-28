@@ -147,7 +147,7 @@ class CodeWriter:
 
     def writeIf(self, label: str):
         self.fileWriter.write("@SP\nM=M-1\nA=M\nD=M\n" + "@" + self.functionName + "$" + label + "\nD;JNE\n")
-        
+
     def writeCall(self, functionName: str, nArgs: int):
         ADDRESS_LIST = ['@LCL', '@ARG', '@THIS', '@THAT']
         RETURN = functionName + 'ret' + str(self.call_count)
@@ -161,55 +161,45 @@ class CodeWriter:
 
     def writeFunction(self, functionName: str, nVars: int):
         self.fileWriter.write(f"({functionName})")
-        for i in range(nVars):  # Initialize local vars to 0
+        for i in range(int(nVars)):
             self.fileWriter.write('D=0\n')
-            self.fileWriter.write('@SP\n')  # Get current stack pointer
-            self.fileWriter.write('A=M\n')  # Set address to current stack pointer
-            self.fileWriter.write('M=D\n')  # Write data to top of stack
+            self.fileWriter.write('@SP\n')
+            self.fileWriter.write('A=M\n')
+            self.fileWriter.write('M=D\n')
             self.fileWriter.write('@SP\n')
             self.fileWriter.write('M=M+1\n')
 
     def writeReturn(self):
-        # Temporary variables
         FRAME = 'R13'
         RET = 'R14'
 
-        # FRAME = LCL
         self.fileWriter.write('@LCL')
         self.fileWriter.write('D=M')
         self.fileWriter.write('@' + FRAME)
         self.fileWriter.write('M=D')
 
-        # RET = *(FRAME-5)
-        # Can't be included in iterator b/c value will be overwritten if num_args=0
         self.fileWriter.write('@' + FRAME)
-        self.fileWriter.write('\nD=M\n')  # Save start of frame
+        self.fileWriter.write('\nD=M\n')
         self.fileWriter.write('@5\n')
-        self.fileWriter.write('D=D-A\n')  # Adjust address
-        self.fileWriter.write('A=D\n')  # Prepare to load value at address
-        self.fileWriter.write('D=M\n')  # Store value
+        self.fileWriter.write('D=D-A\n')
+        self.fileWriter.write('A=D\n')
+        self.fileWriter.write('D=M\n')
         self.fileWriter.write('@' + RET)
-        self.fileWriter.write('\nM=D\n')  # Save value
+        self.fileWriter.write('\nM=D\n')
 
-        # *ARG = pop()
         self.fileWriter.write('@SP\n')
         self.fileWriter.write('M=M-1\n')
-        self.fileWriter.write('A=M\n')  # Set address to current stack pointer
-        self.fileWriter.write('D=M\n')  # Get data from top of stac
+        self.fileWriter.write('A=M\n')
+        self.fileWriter.write('D=M\n')
         self.fileWriter.write('@ARG\n')
         self.fileWriter.write('A=M\n')
         self.fileWriter.write('M=D\n')
 
-        # SP = ARG+1
         self.fileWriter.write('@ARG\n')
         self.fileWriter.write('D=M\n')
         self.fileWriter.write('@SP\n')
         self.fileWriter.write('M=D+1\n')
 
-        # THAT = *(FRAME-1)
-        # THIS = *(FRAME-2)
-        # ARG = *(FRAME-3)
-        # LCL = *(FRAME-4)
         offset = 1
         for address in ['@THAT', '@THIS', '@ARG', '@LCL']:
             self.fileWriter.write('@' + FRAME)
@@ -233,7 +223,7 @@ class CodeWriter:
 
 
 def VMTranslator():
-    path_given = "FunctionCalls/FibonacciElement"#sys.argv[1]  # reading a file
+    path_given = "FunctionCalls/FibonacciElement"  # sys.argv[1]  # reading a file
     list_of_input = []
     isFile = False
     bootstrap = False

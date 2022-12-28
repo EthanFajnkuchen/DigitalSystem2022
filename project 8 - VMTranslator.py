@@ -1,3 +1,4 @@
+import os
 import sys
 
 
@@ -63,7 +64,7 @@ class Parser:
             return self.command.split(" ")[1]
 
     def args2(self):  # returning the second args by the command type
-        if "C_PUSH" or "C_POP" or "C_CALL" or "C_FUNCTION" == self.commandType():
+        if ("C_PUSH" or "C_POP" or "C_CALL" or "C_FUNCTION") == self.commandType():
             return self.command.split(" ")[2]
 
 
@@ -76,7 +77,13 @@ class CodeWriter:
     def __init__(self, file: str):
         self.fileWriter = open(file, "w")
         self.label = 0  # counting the number of labels
-        self.labelList = []
+        self.function_count = 0  # counting the number of function
+        self.call_count = 0  # counting the number of calls
+
+    '''init the function'''
+    def write_init(self): 
+        self.write("@256\nD=A\n@SP\nM=D\n@Sys.init\n0;JMP")
+        self.function_count += 1
 
     # writing to the file the arithmetic commands
     def writeArithmetic(self, command: str):
@@ -127,38 +134,39 @@ class CodeWriter:
             self.fileWriter.write(SegmentDictionary[com])  # getting the value from the dictionary to the file
 
     def writeLabel(self, label: str):
-        if label not in self.labelList:
-            self.labelList.append(label)
-            self.fileWriter.write("(" + label + ")")
+        self.fileWriter.write("(" + label + ")")
 
     def writeGoto(self, label: str):
-        if label in self.labelList:
-            self.fileWriter.write("@" + label + "\n0;JMP\n")
+        self.fileWriter.write("@" + label + "\n0;JMP\n")
 
     def writeIf(self, label: str):
-        if label in self.labelList:
-            self.fileWriter.write("@SP\nAM=M-1\nD=M\n@" + label + "\nD;JNE\n")
+        self.fileWriter.write("@SP\nAM=M-1\nD=M\n@" + label + "\nD;JNE\n")
 
     def writeCall(self, functionName: str, nArgs: int):
-        self.fileWriter.write(
-            "@" + functionName + "\nD=A\n@SP\nAM=M+1\nA=A-1\nM=D\n@" + str(nArgs) + "\nD=A\n@SP\nAM=M+1\nA=A-1"
-                                                                                    "\nM=D\n@RETURN_ADDRESS\nD=A"
-                                                                                    "\n@SP\nAM=M+1\nA=A-1\nM=D\n"
-                                                                                    "@SP\nD=M\n@LCL\nM=D\n@5\nD"
-                                                                                    "=A\n@SP\nD=M-D\n@ARG\nM=D\n"
-                                                                                    "@SP\nM=M+1\n@" + functionName + "\n0"
-                                                                                                                     ";JMP\n(RETURN_ADDRESS)\n")
+        RETURN_UNIQUE = functionName + "RETURN" + str(self.call_count)
+        self.fileWriter.write("@" + RETURN_UNIQUE + "\nD=A\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@LCL\n@ARG\n"
+                                                    "@THIS\n@THAT\n@SP\nD=M\n@LCL\nM=D\n@"
+                              + str(nArgs + 5) + "D=A\n@SP\nD=M-D\n@ARG\nM=D\n@" + functionName + "\n0;JMP\n")
+        # Return address
+        self.fileWriter.write(f'({RETURN_UNIQUE})', code=False)
 
     def writeFunction(self, functionName: str, nVars: int):
         self.fileWriter.write(
-            "(" + functionName + ")\n@" + nVars + "\nD=A\n@i\nM=D\n(LOOP)\n@i\nD=M\n@END\nD;JEQ\n@SP\nAM=M+1\nA=A-1"
-                                                  "\nM=0\n@i\nM=M-1\n@LOOP\n0;JMP\n(END)\n"
+            "(" + functionName + ")\n@" + str(
+                nVars) + "\nD=A\n@i\nM=D\n(LOOP)\n@i\nD=M\n@END\nD;JEQ\n@SP\nAM=M+1\nA=A-1"
+                         "\nM=0\n@i\nM=M-1\n@LOOP\n0;JMP\n(END)\n"
         )
 
     def writeReturn(self):
-        self.fileWriter.write("@LCL\nD=M\n@R13\nM=D\n@5\nD=A\n@R13\nA=M-D\nD=M\n@R14\nM=D\n@SP\nAM=M-1\nD=M\n@ARG\nA"
-                              "=M\nM=D\n@ARG\nD=M\n@SP\nM=D+1\n@LCL\nD=M\n@END\nA=D-1\nD=M\n@R13\nA=M\nM=D\n@R14\nA=M"
-                              "\n0;JMP\n(END)\n")
+        address_list = ['@THAT', '@THIS', '@ARG', '@LCL']
+        self.fileWriter.write(
+            "@LCL\nD=M\n@R13\nM=D\n@R13\nD=M\n@5\nD=D-A\nA=D\nD=M\n@R14\nM=D\n@SP\nM=M-1\nA=M\nD=M\n@ARG\nA=M"
+            "\nM=D\n@ARG\nD=M\n@SP\nM=D+1")
+        counter = 1
+        for item in address_list:
+            self.fileWriter.write("@R13\nD=M\n@" + str(counter) + "\nD=D-A\nA=D\nD=M\n" + item + "M=D\n")
+            counter += 1
+        self.fileWriter.write("@R14\nA=M\n0;JMP")
 
     def close(self):
         """Closes the output file."""
@@ -168,7 +176,6 @@ class CodeWriter:
 def VMTranslator():
     input_file = sys.argv[1]  # reading a file
     output_file = input_file.replace(".vm", ".asm")  # switching to asm file
-
     parser = Parser(input_file)  # build a parser
     code_writer = CodeWriter(output_file)
     # making the code writer to the output file

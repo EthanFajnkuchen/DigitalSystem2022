@@ -152,13 +152,13 @@ class CodeWriter:
 
     def writeCall(self, functionName: str, nArgs: int):
         self.fileWriter.write(
-            "@" + self.functionName + "$ret." + str(self.label) + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+            "@" + self.functionName + "$ret." + str(self.call_count) + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
         for i in ["LCL", "ARG", "THIS", "THAT"]:
             self.fileWriter.write("@" + i + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
         self.fileWriter.write("@SP\nD=M\n@5\nD=D-A\n" + "@" + str(
-            nArgs) + "\nD=D-A\n@ARG\nM=D\n@SP\nD=M\n@LCL\nM=D\n" + "@" + functionName + "\n0;JMP\n" + 
-                              "(" + self.functionName + "$ret." + str(self.label) + ")\n")
-        self.label += 1
+            nArgs) + "\nD=D-A\n@ARG\nM=D\n@SP\nD=M\n@LCL\nM=D\n" + "@" + functionName + "\n0;JMP\n" +
+                              "(" + self.functionName + "$ret." + str(self.call_count) + ")\n")
+        self.call_count += 1
 
     def writeFunction(self, functionName: str, nVars: int):
         self.functionName = functionName

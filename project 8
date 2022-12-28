@@ -147,35 +147,16 @@ class CodeWriter:
 
     def writeIf(self, label: str):
         self.fileWriter.write("@SP\nM=M-1\nA=M\nD=M\n" + "@" + self.functionName + "$" + label + "\nD;JNE\n")
-
+        
     def writeCall(self, functionName: str, nArgs: int):
+        ADDRESS_LIST = ['@LCL', '@ARG', '@THIS', '@THAT']
         RETURN = functionName + 'ret' + str(self.call_count)  # Unique return label
-        self.fileWriter.write('@' + RETURN)
-        self.fileWriter.write('D=A')
-        self.fileWriter.write('@SP')
-        self.fileWriter.write('A=M')
-        self.fileWriter.write('M=D')
-        self.fileWriter.write('@SP')
-        self.fileWriter.write('M=M+1')
-        for address in ['@LCL', '@ARG', '@THIS', '@THAT']:
-            self.fileWriter.write(address)
-            self.fileWriter.write('D=M')
-            self.fileWriter.write('@SP')  # Get current stack pointer
-            self.fileWriter.write('A=M')  # Set address to current stack pointer
-            self.fileWriter.write('M=D')  # Write data to top of stack
-            self.fileWriter.write('@SP')
-            self.fileWriter.write('M=M+1')
-        self.fileWriter.write('@SP')
-        self.fileWriter.write('D=M')
-        self.fileWriter.write('@LCL')
-        self.fileWriter.write('M=D')
-        self.fileWriter.write('@' + str(nArgs + 5))
-        self.fileWriter.write('D=D-A')
-        self.fileWriter.write('@ARG')
-        self.fileWriter.write('M=D')
-        self.fileWriter.write('@' + functionName)
-        self.fileWriter.write('0;JMP')
-        self.fileWriter.write(f"({RETURN})")
+        self.fileWriter.write('@' + RETURN + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+        for item in ADDRESS_LIST:
+            self.fileWriter.write(
+                item + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@SP\nD=M\n@LCL\nM=D\n@" + str(int(nArgs) + 5) + "\nD=D-A\n")
+        self.fileWriter.write('@ARG\nM=D\n@' + functionName + "\n0;JMP\n")
+        self.fileWriter.write(f"({RETURN})\n")
 
     def writeFunction(self, functionName: str, nVars: int):
         self.fileWriter.write(f"({functionName})")

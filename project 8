@@ -180,12 +180,12 @@ class CodeWriter:
     def writeFunction(self, functionName: str, nVars: int):
         self.fileWriter.write(f"({functionName})")
         for i in range(nVars):  # Initialize local vars to 0
-            self.fileWriter.write('D=0')
-            self.fileWriter.write('@SP')  # Get current stack pointer
-            self.fileWriter.write('A=M')  # Set address to current stack pointer
-            self.fileWriter.write('M=D')  # Write data to top of stack
-            self.fileWriter.write('@SP')
-            self.fileWriter.write('M=M+1')
+            self.fileWriter.write('D=0\n')
+            self.fileWriter.write('@SP\n')  # Get current stack pointer
+            self.fileWriter.write('A=M\n')  # Set address to current stack pointer
+            self.fileWriter.write('M=D\n')  # Write data to top of stack
+            self.fileWriter.write('@SP\n')
+            self.fileWriter.write('M=M+1\n')
 
     def writeReturn(self):
         # Temporary variables
@@ -201,28 +201,28 @@ class CodeWriter:
         # RET = *(FRAME-5)
         # Can't be included in iterator b/c value will be overwritten if num_args=0
         self.fileWriter.write('@' + FRAME)
-        self.fileWriter.write('D=M')  # Save start of frame
-        self.fileWriter.write('@5')
-        self.fileWriter.write('D=D-A')  # Adjust address
-        self.fileWriter.write('A=D')  # Prepare to load value at address
-        self.fileWriter.write('D=M')  # Store value
+        self.fileWriter.write('\nD=M\n')  # Save start of frame
+        self.fileWriter.write('@5\n')
+        self.fileWriter.write('D=D-A\n')  # Adjust address
+        self.fileWriter.write('A=D\n')  # Prepare to load value at address
+        self.fileWriter.write('D=M\n')  # Store value
         self.fileWriter.write('@' + RET)
-        self.fileWriter.write('M=D')  # Save value
+        self.fileWriter.write('\nM=D\n')  # Save value
 
         # *ARG = pop()
-        self.fileWriter.write('@SP')
-        self.fileWriter.write('M=M-1')
-        self.fileWriter.write('A=M')  # Set address to current stack pointer
-        self.fileWriter.write('D=M')  # Get data from top of stac
-        self.fileWriter.write('@ARG')
-        self.fileWriter.write('A=M')
-        self.fileWriter.write('M=D')
+        self.fileWriter.write('@SP\n')
+        self.fileWriter.write('M=M-1\n')
+        self.fileWriter.write('A=M\n')  # Set address to current stack pointer
+        self.fileWriter.write('D=M\n')  # Get data from top of stac
+        self.fileWriter.write('@ARG\n')
+        self.fileWriter.write('A=M\n')
+        self.fileWriter.write('M=D\n')
 
         # SP = ARG+1
-        self.fileWriter.write('@ARG')
-        self.fileWriter.write('D=M')
-        self.fileWriter.write('@SP')
-        self.fileWriter.write('M=D+1')
+        self.fileWriter.write('@ARG\n')
+        self.fileWriter.write('D=M\n')
+        self.fileWriter.write('@SP\n')
+        self.fileWriter.write('M=D+1\n')
 
         # THAT = *(FRAME-1)
         # THIS = *(FRAME-2)
@@ -231,19 +231,19 @@ class CodeWriter:
         offset = 1
         for address in ['@THAT', '@THIS', '@ARG', '@LCL']:
             self.fileWriter.write('@' + FRAME)
-            self.fileWriter.write('D=M')  # Save start of frame
+            self.fileWriter.write('\nD=M\n')  # Save start of frame
             self.fileWriter.write('@' + str(offset))
-            self.fileWriter.write('D=D-A')  # Adjust address
-            self.fileWriter.write('A=D')  # Prepare to load value at address
-            self.fileWriter.write('D=M')  # Store value
+            self.fileWriter.write('\nD=D-A\n')  # Adjust address
+            self.fileWriter.write('A=D\n')  # Prepare to load value at address
+            self.fileWriter.write('D=M\n')  # Store value
             self.fileWriter.write(address)
-            self.fileWriter.write('M=D')  # Save value
+            self.fileWriter.write('\nM=D\n')  # Save value
             offset += 1
 
         # goto RET
         self.fileWriter.write('@' + RET)
-        self.fileWriter.write('A=M')
-        self.fileWriter.write('0;JMP')
+        self.fileWriter.write('\nA=M\n')
+        self.fileWriter.write('0;JMP\n')
 
     def close(self):
         """Closes the output file."""

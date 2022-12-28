@@ -173,7 +173,7 @@ class CodeWriter:
 
         counter = 1
         for item in self.Address_list():
-            self.fileWriter.write("@R13\nD=M\n@" + str(counter)+"\nD=D-A\nA=D\nD=M\n"+item+"\nM=D\n")
+            self.fileWriter.write("@R13\nD=M\n@" + str(counter) + "\nD=D-A\nA=D\nD=M\n" + item + "\nM=D\n")
             counter += 1
         self.fileWriter.write("@R14\nA=M\n0;JMP\n")
 
@@ -182,8 +182,8 @@ class CodeWriter:
         self.fileWriter.close()
 
 
-def VMTranslator():
-    path_given = sys.argv[1]  # reading a file
+class VMTranslator(object):
+    path_given = "FunctionCalls/FibonacciElement"  # sys.argv[1]  # reading a file
     list_of_input = []
     isFile = False
     bootstrap = False
@@ -207,7 +207,7 @@ def VMTranslator():
     for input_file in list_of_input:
         code_writer = CodeWriter(output_file)
         code_writer.setFileName(output_file)
-        if isFile == False and bootstrap == True:
+        if not isFile and bootstrap:
             code_writer.writeInnit()
         parser = Parser(input_file)
         # making the code writer to the output file

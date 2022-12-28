@@ -150,13 +150,14 @@ class CodeWriter:
         
     def writeCall(self, functionName: str, nArgs: int):
         ADDRESS_LIST = ['@LCL', '@ARG', '@THIS', '@THAT']
-        RETURN = functionName + 'ret' + str(self.call_count)  # Unique return label
+        RETURN = functionName + 'ret' + str(self.call_count)
         self.fileWriter.write('@' + RETURN + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
         for item in ADDRESS_LIST:
             self.fileWriter.write(
                 item + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@SP\nD=M\n@LCL\nM=D\n@" + str(int(nArgs) + 5) + "\nD=D-A\n")
         self.fileWriter.write('@ARG\nM=D\n@' + functionName + "\n0;JMP\n")
         self.fileWriter.write(f"({RETURN})\n")
+        self.call_count += 1
 
     def writeFunction(self, functionName: str, nVars: int):
         self.fileWriter.write(f"({functionName})")

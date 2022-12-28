@@ -148,11 +148,14 @@ class CodeWriter:
     def writeIf(self, label: str):
         self.fileWriter.write("@SP\nM=M-1\nA=M\nD=M\n" + "@" + self.functionName + "$" + label + "\nD;JNE\n")
 
-    def writeCall(self, functionName: str, nArgs: int):
+    def Address_list(self) -> list:
         ADDRESS_LIST = ['@LCL', '@ARG', '@THIS', '@THAT']
+        return ADDRESS_LIST
+
+    def writeCall(self, functionName: str, nArgs: int):
         RETURN = functionName + 'ret' + str(self.call_count)
         self.fileWriter.write('@' + RETURN + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
-        for item in ADDRESS_LIST:
+        for item in self.Address_list():
             self.fileWriter.write(
                 item + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@SP\nD=M\n@LCL\nM=D\n@" + str(int(nArgs) + 5) + "\nD=D-A\n")
         self.fileWriter.write('@ARG\nM=D\n@' + functionName + "\n0;JMP\n")
@@ -160,62 +163,19 @@ class CodeWriter:
         self.call_count += 1
 
     def writeFunction(self, functionName: str, nVars: int):
-        self.fileWriter.write(f"({functionName})")
+        self.fileWriter.write(f"({functionName})\n")
         for i in range(int(nVars)):
-            self.fileWriter.write('D=0\n')
-            self.fileWriter.write('@SP\n')
-            self.fileWriter.write('A=M\n')
-            self.fileWriter.write('M=D\n')
-            self.fileWriter.write('@SP\n')
-            self.fileWriter.write('M=M+1\n')
+            self.fileWriter.write("D=0\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
 
     def writeReturn(self):
-        FRAME = 'R13'
-        RET = 'R14'
+        self.fileWriter.write("@LCL\nD=M\n@R13\nM=D\n@R13\nD=M\n@5\nD=D-A\nA=D\nD=M\n@R14\nM=D\n@SP\n"
+                              "M=M-1\nA=M\nD=M\n@ARG\nA=M\nM=D\n@ARG\nD=M\n@SP\nM=D+1\n")
 
-        self.fileWriter.write('@LCL')
-        self.fileWriter.write('D=M')
-        self.fileWriter.write('@' + FRAME)
-        self.fileWriter.write('M=D')
-
-        self.fileWriter.write('@' + FRAME)
-        self.fileWriter.write('\nD=M\n')
-        self.fileWriter.write('@5\n')
-        self.fileWriter.write('D=D-A\n')
-        self.fileWriter.write('A=D\n')
-        self.fileWriter.write('D=M\n')
-        self.fileWriter.write('@' + RET)
-        self.fileWriter.write('\nM=D\n')
-
-        self.fileWriter.write('@SP\n')
-        self.fileWriter.write('M=M-1\n')
-        self.fileWriter.write('A=M\n')
-        self.fileWriter.write('D=M\n')
-        self.fileWriter.write('@ARG\n')
-        self.fileWriter.write('A=M\n')
-        self.fileWriter.write('M=D\n')
-
-        self.fileWriter.write('@ARG\n')
-        self.fileWriter.write('D=M\n')
-        self.fileWriter.write('@SP\n')
-        self.fileWriter.write('M=D+1\n')
-
-        offset = 1
-        for address in ['@THAT', '@THIS', '@ARG', '@LCL']:
-            self.fileWriter.write('@' + FRAME)
-            self.fileWriter.write('\nD=M\n')  # Save start of frame
-            self.fileWriter.write('@' + str(offset))
-            self.fileWriter.write('\nD=D-A\n')  # Adjust address
-            self.fileWriter.write('A=D\n')  # Prepare to load value at address
-            self.fileWriter.write('D=M\n')  # Store value
-            self.fileWriter.write(address)
-            self.fileWriter.write('\nM=D\n')  # Save value
-            offset += 1
-
-        # goto RET
-        self.fileWriter.write('@' + RET)
-        self.fileWriter.write('\nA=M\n')
-        self.fileWriter.write('0;JMP\n')
+        counter = 1
+        for item in self.Address_list():
+            self.fileWriter.write("@R13\nD=M\n@" + str(counter)+"\nD=D-A\nA=D\nD=M\n"+item+"\nM=D\n")
+            counter += 1
+        self.fileWriter.write("@R14\nA=M\n0;JMP\n")
 
     def close(self):
         """Closes the output file."""
@@ -223,7 +183,7 @@ class CodeWriter:
 
 
 def VMTranslator():
-    path_given = "FunctionCalls/FibonacciElement"  # sys.argv[1]  # reading a file
+    path_given = sys.argv[1]  # reading a file
     list_of_input = []
     isFile = False
     bootstrap = False

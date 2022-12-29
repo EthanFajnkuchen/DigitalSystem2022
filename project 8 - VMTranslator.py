@@ -4,10 +4,17 @@ import sys
 
 class Parser:
     """
-    reading the file to list of commands with @self.commands
-    such that @self.command is the command in the current line and @self.curr is the counter
+    The Parser class.
+    We will use it to read VM commands from the input file.
     """
 
+
+    """
+    Constructor of the Parser object.
+    We initialize 3 fields : - The actual command
+                             - The
+                             - A list of all VM commands contains in the file
+    """
     def __init__(self, input_file: str):
         self.command = ""
         self.curr = -1
@@ -21,14 +28,36 @@ class Parser:
                 self.commands.append(line)
         file.close()  # closing the file
 
-    def hasMoreLine(self):  # check if there exist more lines in the file
+    """
+    We check if there exist more lines to parse in the file.
+    The value return is True or False.
+    """
+    def hasMoreLine(self):
         return (self.curr + 1) < len(self.commands)
 
-    def advance(self):  # moving to the next line of the file
+    """
+    We move to the next command in the file.
+    Actually, we just move the pointer to the element in the list and change the command field by the new command 
+    pointed by the curr field in the list.
+    """
+    def advance(self):
         self.curr += 1
         self.command = self.commands[self.curr]
 
-    def commandType(self):  # returning the desired command
+    """
+    We return the command type of the VM command.
+    There exists 9 types of commands :
+                                            - POP
+                                            - PUSH
+                                            - ARITHMETIC
+                                            - LABEL
+                                            - GOTO
+                                            - IF GOTO
+                                            - CALL
+                                            - FUNCTION
+                                            - RETURN
+    """
+    def commandType(self):
         command = self.command.split(" ")[0]
         if command == "pop":
             return "C_POP"
@@ -36,66 +65,90 @@ class Parser:
         if command == "push":
             return "C_PUSH"
 
-        if command == "add" or command == "sub" or command == "neg" or command == "eq" or command == "gt" or command == "lt" or command == "and" or command == "or" or command == "not": 
+        if command == "add" or command == "sub" or command == "neg" or command == "eq" or command == "gt" or \
+                command == "lt" or command == "and" or command == "or" or command == "not":
             return "C_ARITHMETIC"
 
-        if "label" == command:
+        if command == "label":
             return "C_LABEL"
 
-        if "goto" == command:
+        if command == "goto":
             return "C_GOTO"
 
-        if "if-goto" == command:
+        if command == "if-goto":
             return "C_IF-GOTO"
 
-        if "call" == command:
+        if command == "call":
             return "C_CALL"
 
-        if "function" == command:
+        if command == "function":
             return "C_FUNCTION"
 
         if "return" == command:
             return "C_RETURN"
 
-    def args1(self):  # returning the first args by the command type
+    """
+    Return the first argument of the command.
+    We separate in two cases, when the command type is ARITHMETIC or RETURN and the when the command type is one of the seven others.
+    """
+    def args1(self):
         if self.commandType() == "C_ARITHMETIC" or self.commandType() == "C_RETURN":
             return self.command.split(" ")[0]
         else:
             return self.command.split(" ")[1]
 
-    def args2(self):  # returning the second args by the command type
+    """
+    Return the second argument of the command.
+    This function is used only for Push,Pop,Call or Function command.
+    """
+    def args2(self):
         if "C_PUSH" or "C_POP" or "C_CALL" or "C_FUNCTION" == self.commandType():
             return self.command.split(" ")[2]
 
 
 class CodeWriter:
     """
-    opening the given file and by the @self.fileWriter
-    and counting the number of labels by the @self.label
+    The CodeWriter class.
+    We will use the CodeWriter object to translate the VM commands in ASM language.
     """
 
+    """
+    Constructor of the CodeWriter object.
+    We initialize 4 fields :
+                            - fileWriter   : this field is our writer, we will use it to write into the output file.
+                            - label        : this field is our label counter. 
+                            - fileName     : this field keep the name of the inputFile into the CodeWriter object, it 
+                                              will be useful when parsing multiple VM files in a directory.
+                            - functionName : this field keep the name of the function that we are translating.
+    """
     def __init__(self, file: str):
         self.fileWriter = open(file, "w")
         self.label = 0  # counting the number of labels
-        self.function_count = 0  # counting the number of function
-        self.call_count = 0  # counting the number of calls
         self.fileName = ""
-        self.functionName = "OS"
+        self.functionName = ""
 
-    '''init the function'''
-
-    def writeInit(self):
+    """
+    This function write the boostrap code into the output file.
+    It should be call when we get a Directory as an input and the given Directory includes the Sys.vm file.
+    """
+    def writeInnit(self):
         self.fileWriter.write("@256\nD=A\n@SP\nM=D\n")
-        self.writeFunction("OS", 0)
-        self.writeCall("Sys.init", 0)
-        self.function_count += 1
+        self.functionName = "Sys.init"
+        self.writeCall("Sys.init",0)
 
-    def setFileName(self, file_name):
+    """
+    We keep the input file name into our CodeWriter object.
+    We need this setter to indicate to the CodeWriter when a translation of a new VM file has started.
+    """
+    def setFileName(self,file_name):
         self.fileName = file_name
 
-    # writing to the file the arithmetic commands
+    """
+    Writes to the output file the assembly code that implements the given arithmetic command.
+    On this purpose, we build a dictionary of all the commands and return for each arithmetic command the value 
+    associated to the key. Here the key is the actual VM command.
+    """
     def writeArithmetic(self, command: str):
-        # build a dictionary of the commands
         CommandDictionary = {
             "add": "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nM=D+M\n@SP\nM=M+1\n",
             "sub": "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nM=M-D\n@SP\nM=M+1\n",
@@ -114,16 +167,20 @@ class CodeWriter:
                 self.label) + ")\n "
         }
         if CommandDictionary[command] is not None:
-            self.fileWriter.write(CommandDictionary[command])  # get the value from the dictionary to the file
+            self.fileWriter.write(CommandDictionary[command])
             if command == "eq" or "lt" or "gt":
                 self.label += 1  # increase the label counter by 1
 
+    """
+    Writes to the output file the assembly code that implements the given push or pop command.
+    On this purpose, we build a dictionary of all the commands and return for each pop/push command the value 
+    associated to the key. Here the key is the a composition of the command associated to the given segment.
+    """
     def WritePushPop(self, command: str, segment: str, index: str):
-        # build a dictionary of the commands
         SegmentDictionary = {
             "constant C_PUSH": "@" + index + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
-            "static C_PUSH": "@" + index + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
-            "static C_POP": "@SP\nAM=M-1\nD=M\n@" + index + "\nM=D\n",
+            "static C_PUSH": "@" + self.fileName + "." + index + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
+            "static C_POP": "@SP\nAM=M-1\nD=M\n@" + self.fileName + "." + index + "\nM=D\n",
             "pointer C_PUSH": "@" + index + "\nD=A\n@3\nA=A+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
             "pointer C_POP": "@" + index + "\nD=A\n@3\nD=A+D\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n",
             "this C_PUSH": "@" + index + "\nD=A\n@THIS\nA=M+D\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n",
@@ -141,80 +198,110 @@ class CodeWriter:
         if SegmentDictionary.get(com) is not None:
             self.fileWriter.write(SegmentDictionary.get(com))  # getting the value from the dictionary to the file
 
+    """
+    Write assembly code into the output file that affect the label command.
+    """
     def writeLabel(self, label: str):
         self.fileWriter.write("(" + self.functionName + "$" + label + ")\n")
 
+    """
+    Write assembly code into the output file that affect the goto command.
+    """
     def writeGoto(self, label: str):
         self.fileWriter.write("@" + self.functionName + "$" + label + "\n0;JMP\n")
 
+    """
+    Write assembly code into the output file that affect the if-goto command.
+    """
     def writeIf(self, label: str):
         self.fileWriter.write("@SP\nAM=M-1\nD=M\n" + "@" + self.functionName + "$" + label + "\nD;JNE\n")
 
-    def writeCall(self, functionName: str, nArgs: int):
-        self.fileWriter.write(
-            "@" + self.functionName + "$ret." + str(self.call_count) + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
-        for i in ["LCL", "ARG", "THIS", "THAT"]:
-            self.fileWriter.write("@" + i + "\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
-        self.fileWriter.write("@SP\nD=M\n@5\nD=D-A\n" + "@" + str(
-            nArgs) + "\nD=D-A\n@ARG\nM=D\n@SP\nD=M\n@LCL\nM=D\n" + "@" + functionName + "\n0;JMP\n" +
-                              "(" + self.functionName + "$ret." + str(self.call_count) + ")\n")
-        self.call_count += 1
+    """
+    Write assembly code into the output file that affect the call command.
+    """
 
+    def writeCall(self, functionName: str, nArgs: int):
+        self.fileWriter.write("@" + self.functionName + "$ret." + str(self.label) +"\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+
+        for i in ["LCL","ARG","THIS","THAT"]:
+            self.fileWriter.write("@"+i+"\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+
+        self.fileWriter.write("@SP\nD=M\n@5\nD=D-A\n" + "@" + str(nArgs) + "\nD=D-A\n@ARG\nM=D\n@SP\nD=M\n@LCL\nM=D\n"
+                              + "@" + functionName + "\n0;JMP\n" + "(" + self.functionName + "$ret."
+                              + str(self.label) +")\n")
+
+        self.label += 1
+
+    """
+    Write assembly code into the output file that affect the function command.
+    """
     def writeFunction(self, functionName: str, nVars: int):
         self.functionName = functionName
-        self.fileWriter.write("(" + functionName + ")\n")
+        self.fileWriter.write("(" + self.functionName + ")\n")
         for i in range(int(nVars)):
-            self.WritePushPop("C_PUSH", "constant", '0')
+            self.WritePushPop("C_PUSH","constant",'0')
 
+    """
+    Write assembly code into the output file that affect the return command.
+    """
     def writeReturn(self):
-        address_list = ['@THAT', '@THIS', '@ARG', '@LCL']
-        self.fileWriter.write(
-            "@LCL\nD=M\n@R13\nM=D\n@5\nA=D-A\nD=M\n@R14\nM=D\n@SP\nAM=M-a\nD=M\n@ARG\nD=M+1\n@SP\nM=D\n")
-        for item in address_list:
-            self.fileWriter.write("@R13\nAM=M-1\nD=M\n" + "@" + item + "\nM=D\n")
-        self.fileWriter.write("@R14\nA=M\n0;JMP\n")
+        self.fileWriter.write("@LCL\nD=M\n@R11\nM=D\n@5\nA=D-A\nD=M\n@R12\nM=D\n@ARG\nD=M\n@0\nD=D+A\n@R13\nM=D\n@SP\n"
+                              "AM=M-1\nD=M\n@R13\nA=M\nM=D\n@ARG\nD=M\n@SP\nM=D+1\n@R11\nD=M-1\nAM=D\nD=M\n@THAT\nM=D\n"
+                              "@R11\nD=M-1\nAM=D\nD=M\n@THIS\nM=D\n@R11\nD=M-1\nAM=D\nD=M\n@ARG\nM=D\n@R11\nD=M-1\n"
+                              "AM=D\nD=M\n@LCL\nM=D\n@R12\nA=M\n0;JMP\n")
 
+    """
+    We close the writer of the CodeWriter object when the translation of all the VM commands in each file provided
+    is done.
+    """
     def close(self):
-        """Closes the output file."""
         self.fileWriter.close()
 
 
+    """
+    Our main function that use the Parser and CodeWriter classes to actually translate the VM files.
+    """
 def VMTranslator():
-    path_given = sys.argv[1]  # reading a file
+    path_given = sys.argv[1]
     list_of_input = []
     isFile = False
     bootstrap = False
+
+    # We first check if the path given is a file.
     if os.path.isfile(path_given) and path_given.endswith(".vm"):
         list_of_input.append(path_given)
-        output_file = path_given.replace(".vm", ".asm")
+        output_file = path_given.replace(".vm", ".asm") #Create an output file where the name is fileName.asm.
         isFile = True
 
+    # We now check if the path given is a directory.
     if os.path.isdir(path_given):
         if path_given.endswith("/"):
             path_given = path_given[:-1]
         list_of_files_in_dir = os.listdir(path_given)
         for file in list_of_files_in_dir:
             if file.endswith(".vm"):
-                list_of_input.append(path_given + "/" + file)
+                list_of_input.append(path_given + "/" + file) # We add every VM files to a list to keep them.
             if file == "Sys.vm":
                 bootstrap = True
+        
+        #We create the output file in the case a directory is given, here the name is DirName.asm
+        output_file = path_given + "/" + os.path.basename(os.path.normpath(path_given)) + ".asm" 
 
-        output_file = path_given + "/" + os.path.basename(os.path.normpath(path_given)) + ".asm"
-
+    code_writer = CodeWriter(output_file) #We create the code writer.
     for input_file in list_of_input:
-        code_writer = CodeWriter(output_file)
-        code_writer.setFileName(output_file)
-        if not isFile and bootstrap:
-            code_writer.writeInit()
-        parser = Parser(input_file)
-        # making the code writer to the output file
+        code_writer.setFileName(os.path.basename(input_file).split('/')[-1]) #We set the file name to the input file that we parse.
+        if isFile == False and bootstrap == True: 
+            code_writer.writeInnit()
+        parser = Parser(input_file) #We create the parser to read the input file and begin the translation.
+
         while parser.hasMoreLine():
             parser.advance()
             comm_type = parser.commandType()
-            if comm_type == "C_ARITHMETIC":  # its arithmetic
+            
+            if comm_type == "C_ARITHMETIC":  
                 code_writer.writeArithmetic(parser.args1())
 
-            elif comm_type == "C_POP" or comm_type == "C_PUSH":  # it is push or pop functions
+            elif comm_type == "C_POP" or comm_type == "C_PUSH":  
                 arg1 = parser.args1()
                 arg2 = parser.args2()
                 code_writer.WritePushPop(comm_type, arg1, str(arg2))
@@ -237,8 +324,8 @@ def VMTranslator():
             elif comm_type == "C_RETURN":
                 code_writer.writeReturn()
 
-    code_writer.close()  # close the file
+    code_writer.close()  # We close the file when the translation is done.
 
 
-if __name__ == "_main_":
+if __name__ == "__main__":
     VMTranslator()

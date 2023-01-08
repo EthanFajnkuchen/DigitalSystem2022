@@ -8,11 +8,11 @@ push argument 0
 pop this 0
 push pointer 0
 return
-function Ball.draw_Ball 0
+function Ball.drawball 0
 push argument 0
 pop pointer 0
 push this 1
-push constant 180
+push constant 104
 add
 push constant 120
 push constant 7
@@ -28,12 +28,10 @@ not
 call Screen.setColor 1
 pop temp 0
 push pointer 0
-call Ball.draw_Ball 1
+call Ball.drawball 1
 pop temp 0
 push this 1
-push constant 400
-push constant 32
-sub
+push constant 378
 push this 0
 sub
 lt
@@ -44,7 +42,7 @@ push constant 0
 call Screen.setColor 1
 pop temp 0
 push pointer 0
-call Ball.draw_Ball 1
+call Ball.drawball 1
 pop temp 0
 push this 1
 push this 0
@@ -55,7 +53,7 @@ not
 call Screen.setColor 1
 pop temp 0
 push pointer 0
-call Ball.draw_Ball 1
+call Ball.drawball 1
 pop temp 0
 label IF_FALSE0
 push constant 0
@@ -67,7 +65,7 @@ push constant 0
 call Screen.setColor 1
 pop temp 0
 push pointer 0
-call Ball.draw_Ball 1
+call Ball.drawball 1
 pop temp 0
 push pointer 0
 call Ball.dispose 1
@@ -191,13 +189,11 @@ call Screen.drawRectangle 4
 pop temp 0
 push constant 0
 return
-function Ball.goal 0
+function Ball.hit 0
 push argument 0
 pop pointer 0
 push this 1
-push constant 400
-push constant 32
-sub
+push constant 378
 push this 0
 sub
 gt
@@ -209,9 +205,7 @@ not
 return
 label IF_FALSE0
 push this 1
-push constant 400
-push constant 32
-sub
+push constant 378
 push this 0
 sub
 eq

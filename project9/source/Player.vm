@@ -12,11 +12,11 @@ push this 3
 call Ball.new 1
 pop this 2
 push pointer 0
-call Player.draw_Player 1
+call Player.drawPlayer 1
 pop temp 0
 push pointer 0
 return
-function Player.draw_Player 0
+function Player.drawPlayer 0
 push argument 0
 pop pointer 0
 push constant 0
@@ -63,7 +63,7 @@ call Player.dispose 1
 pop temp 0
 push constant 0
 return
-function Player.throw_start 1
+function Player.shoot_start 1
 push argument 0
 pop pointer 0
 push constant 16384
@@ -288,7 +288,7 @@ call Screen.drawRectangle 4
 pop temp 0
 push constant 0
 return
-function Player.throw 0
+function Player.shoot 0
 push argument 0
 pop pointer 0
 push this 2

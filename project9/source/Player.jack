@@ -2,28 +2,28 @@ class Player {
     field int x, y;
     field Ball ball;
     field int speed;
-    constructor Player new(int Ax, int Ay, int Aspeed) {
-        let x = Ax;
-        let y = Ay;
-        let speed = Aspeed;
+    constructor Player new(int myx, int myy, int myspeed) {
+        let x = myx;
+        let y = myy;
+        let speed = myspeed;
         let ball = Ball.new(speed);
-        do draw_Player();
+        do drawPlayer();
         return this;
     }
 
-    method void draw_Player() {
-        do Screen.setColor(true);
-        do Screen.drawLine(20, 60, 20, 110);  // body
-        do Screen.drawLine(20, 80, 10, 60);  // left arm
-        do Screen.drawLine(20, 80, 30, 60);  // right arm
-        do Screen.drawLine(20, 110, 10, 140);  // left leg
-        do Screen.drawLine(20, 110, 30, 140);  // right leg
-        do Screen.drawCircle(20, 50, 10);  // head
-        do dispose();
-        return;
-    }
+    method void drawPlayer() {
+            do Screen.setColor(true);
+            do Screen.drawLine(20, 60, 20, 110);  // body
+            do Screen.drawLine(20, 80, 10, 60);  // left arm
+            do Screen.drawLine(20, 80, 30, 60);  // right arm
+            do Screen.drawLine(20, 110, 10, 140);  // left leg
+            do Screen.drawLine(20, 110, 30, 140);  // right leg
+            do Screen.drawCircle(20, 50, 10);  // head
+            do dispose();
+            return;
+        }
 
-    method void throw_start (int location) {
+    method void shoot_start(int location) {
         var int memAddress;
         let memAddress = 16384+location;
         do Memory.poke(memAddress+0, 254);
@@ -66,13 +66,13 @@ class Player {
     	return;
     }
 
-    method void throw() {
+    method void shoot() {
         do ball.move();
         return;
     }
 
-    method void blast(int address) {
-        do ball.blast(address);
+    method void blast(int location) {
+        do ball.blast(location);
         return;
     }
 
@@ -91,4 +91,3 @@ class Player {
         return;
     }
 }
-

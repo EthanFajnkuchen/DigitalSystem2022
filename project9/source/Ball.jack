@@ -7,35 +7,34 @@ class Ball {
         return this;
     }
 
-    method void draw_Ball() {
-        do Screen.drawCircle((x+180),120,7);
+    method void drawball() {
+        do Screen.drawCircle((x+104),120,7);
         return;
     }
 
     method void move() {
-        /* the Ball moves along a line */
         do Screen.setColor(true);
-        do draw_Ball();
-        if (x < (400 - 32 - speed)) {
+        do drawball();
+        if (x < (378 - speed)) {
             do Screen.setColor(false);
-            do draw_Ball();
+            do drawball();
             let x = x + speed;
             do Screen.setColor(true);
-            do draw_Ball();
+            do drawball();
         }
         return;
     }
     
     method void disappear() {
-        /* erase the Ball, and dispose it*/
+        /* erase the bullet, and dispose it*/
         do Screen.setColor(false);
-        do draw_Ball();
+        do drawball();
         do dispose();
         return;
     }
 
     method void blast(int location) {
-        /* when Ball goals the target, it will blast */
+        /* when bullet hits the target, it will blast */
         var int memAddress;
         let memAddress = 16384+location;
         do Memory.poke(memAddress+0, 8192);
@@ -61,12 +60,12 @@ class Ball {
     }
 
 
-    method boolean goal() {
-        /* determine whether the Player makes a goal */
-        if (x > (400 - 32 - speed)) {
+    method boolean hit() {
+        /* determine whether the bullet hits the target */
+        if (x > (378 - speed)) {
             return true;
         }
-        if (x = (400 - 32 - speed)) {
+        if (x = (378 - speed)) {
             return true;
         }
         return false;

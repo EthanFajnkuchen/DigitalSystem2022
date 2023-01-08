@@ -1,0 +1,147 @@
+class Goalpost {
+    field int y;
+    field int return_value;
+    field int current_score;
+    field int chance;
+    field in speed;
+
+    constructor Goalpost new(int Aspeed) {
+        /* the speed will determine the speed of the ball*/
+        let speed = Aspeed;
+        let return_value = 0;
+        let chance = 5;
+        let y = 0;
+        return this;
+    }
+
+    method void draw_Goalpost(boolean setter)
+    {
+        do Screen.setColor(setter);
+        do Screen.drawLine(504, y, 511, y);
+        do Screen.setColor(false);
+        return;
+    }
+ 
+    method void move(Player player) {
+        /* control the Goalpost to move up and down*/
+        var boolean set;
+        var boolean flag;
+        var boolean moving_down;
+        var boolean shoot;
+        var int key;
+        let flag = true;
+        let moving_down = true;
+        let shoot = false;
+        while (flag) {
+            let key = Keyboard.keyPressed();
+            if (key = 32 & ~(shoot)) {
+                let shoot = true;
+                do player.throw_start(4101);
+            }
+            if (shoot) {
+                do player.throw();
+            }
+            if (player.hit() & chance > 0) {
+                let current_score = calc_score();
+                let chance = chance - 1;
+                let return_value = return_value + current_score;
+                do player.disappear();
+                do player.blast(3805);
+                do show_score();
+                do Sys.wait(1000);
+                let player = player.new(0,0,speed);
+                let shoot = false;
+            }
+            if (chance = 0) {
+                return;
+            }
+            if (y < 159 & (moving_down)) {
+                do move_down();
+                let y = y + 1;
+            }
+            if (y = 159) {
+                let moving_down = false;
+            }
+            if (y > 0 & ~(moving_down)) {
+                do move_up();
+                let y = y - 1;
+            }
+            if (y = 0) {
+                let moving_down = true;
+            }
+        }
+        return;
+    }
+
+    method int calc_score() 
+    {
+        //We find a formula to calc the range of the goalpost
+        var int center;
+        var int diff;
+        let center = y+25;
+        if(center>120)
+        {
+            let diff = center - 120;
+        }
+        else
+        {
+             let diff = 120 - center;
+        }
+        if (diff < 50) {
+            return 1;
+        }
+        return 0;
+    }
+    /* moving the goalpost down or up*/
+    method void move_down() 
+    {
+            do Screen.setColor(true);
+            do Screen.drawLine(504, 50 + y + 1, 511, 50 + y + 1);
+            do Screen.setColor(false);
+            do Screen.drawLine(504, y, 511, y);
+            do Sys.wait(10);
+            return;
+        }
+
+    method void move_up() 
+    {
+        do Screen.setColor(true);
+        do Screen.drawLine(504, y-1, 511, y-1);
+        do Screen.setColor(false);
+        do Screen.drawLine(504, 50 + y, 511, 50 + y);
+        do Sys.wait(10);
+        return;
+    }
+
+    method void show_score() {
+        do Output.moveCursor(3,20);
+        do Output.printString("YOUR CURRENT SCORE IS:");
+        do Output.moveCursor(3,45);
+        do Output.printString("   ");
+        do Output.moveCursor(3,45);
+        do Output.printInt(current_score);
+        do Output.moveCursor(5,20);
+        do Output.printString("YOUR BALLS LEFT:");
+        do Output.moveCursor(5,40);
+        do Output.printInt(chance);
+        do Output.moveCursor(7, 20);
+        do Output.printString("YOUR TOTAL Goals ARE:");
+        do Output.moveCursor(7, 40);
+        do Output.printInt(return_value);
+        return;
+    }
+
+    method void show_final() {
+       do Output.moveCursor(7, 20);
+        do Output.printString("YOUR TOTAL Goals are:");
+        do Output.moveCursor(7, 40);
+        do Output.printInt(return_value); 
+        return;
+    }
+
+    method void dispose() {
+        do player.disappear();
+        do Memory.deAlloc(this);
+        return;
+    }
+}

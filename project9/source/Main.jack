@@ -1,7 +1,7 @@
 class Main {
     function void main() {
-        var Gun gun;
-        var Target target;
+        var Player player;
+        var Goalpost goalpost;
         var boolean flag;
         var int speed;
         var boolean game_on;
@@ -11,11 +11,10 @@ class Main {
             let flag = true;
             while (flag) {
                 do Output.moveCursor(1, 17);
-                do Output.printString("Welcome to PENALTY GAME");
+                do Output.printString("Welcome to PENALTY SOCCER");
                 do Output.moveCursor(3, 10);
-                do Output.printString("Choose a level: 1: easy, 2:medium, 3:hard");
-                do Output.moveCursor(19,14);
-                do Output.printString("By Ethan Fajnkuchen & Niv Doron");
+                do Output.printString("Choose a level: 1: easy, 2:medium, 3:hard\n");
+                do Output.printString("You will have 5 attemps \n        to score as much as you can");
                 do Output.moveCursor(7, 30);
                 let speed = Keyboard.readInt("");
                 if ((speed = 1) | (speed = 2) | (speed = 3)) {
@@ -24,28 +23,28 @@ class Main {
                 /* if the player didn't give a valid number, program will ask again*/
             }
             do Output.moveCursor(7,20);
-            do Output.printString("Press Spacebar to Shoot");
+            do Output.printString("Press Spacebar to Shoot the ball to the goalpost");
             do Sys.wait(1500);
             do Screen.clearScreen();
             let speed = 6 / speed;
-            let target = Target.new(speed);
-            do target.show_score();
-            let gun = Gun.new(0,0,(speed));
-            do target.draw_target(true);
-            do target.move(gun);
+            let goalpost = goalpost.new(speed);
+            do goalpost.show_score();
+            let player = player.new(0,0,(speed));
+            do goalpost.draw_Goalpost(true);
+            do goalpost.move(player);
             do Screen.clearScreen();
-            do target.show_final();
+            do goalpost.show_final();
             do Sys.wait(1000);
            
             do Output.moveCursor(10, 20);
-            do Output.printString("AGAIN? 1: yes, 2: no");
+            do Output.printString("DO YOU WANT TO TRY AGAIN? 1: yes, 2: no");
             do Output.moveCursor(13, 30);
             let restart =  Keyboard.readInt("");
             if (~(restart=1)) {
                 /* if player decide to play again */
                 do Output.moveCursor(10, 30);
                 do Screen.clearScreen();
-                do Output.printString("BYE");
+                do Output.printString("EXIT THE GAME");
                 do Sys.wait(2000);
                 do Screen.clearScreen();
                 do Sys.wait(2000);

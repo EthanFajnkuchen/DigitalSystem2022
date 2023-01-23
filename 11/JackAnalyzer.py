@@ -1,13 +1,8 @@
-##############################################################################
-# FILE : JackAnalyzer.py
-# WRITER : Aviad Dudkewitz, Elkana Tovey
-# DESCRIPTION: This program translate Jack code to xml.
-##############################################################################
-import sys
 import re
 from os import listdir
 from os.path import isfile, isdir
 from CompilationEngine import CompilationEngine
+import sys
 
 INVALID_ARGS = "The file given as input is invalid..."
 NUMBER_OF_ARGS = 2
@@ -18,12 +13,11 @@ VALID_INPUT_SUFFIX = ".*\.jack$"
 JACK_SUFFIX_PATTERN = re.compile(VALID_INPUT_SUFFIX)
 COMMENT = "//.*$"
 
+def file_output_path(file_path):
+    temp_path = re.sub(JACK_SUFFIX, XML_SUFFIX, file_path)
+    return temp_path
 
 def get_files(args):
-    """
-    :param args: the arguments given to the program.
-    :return: the list of paths to .jack files
-    """
     list_of_files_path = []
     if len(args) == NUMBER_OF_ARGS:
         if isfile(args[1]) and JACK_SUFFIX_PATTERN.match(args[1]):
@@ -38,21 +32,9 @@ def get_files(args):
         exit()
 
 
-def file_output_path(file_path):
-    """
-    :param file_path: The original file path
-    :return: the path to the output file (.xml).
-    """
-    temp_path = re.sub(JACK_SUFFIX, XML_SUFFIX, file_path)
-    return temp_path
 
-
-# The main program:
 if __name__ == "__main__":
-    """
-    The program create a new instance of CompilationEngine for every given 
-    .jack file. The instance will create the desired .vm file.
-    """
+
     list_of_files_path = get_files(sys.argv)
     for file_path in list_of_files_path:
         current_code = CompilationEngine(file_path, file_output_path(file_path))

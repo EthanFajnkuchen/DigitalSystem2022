@@ -1,17 +1,6 @@
 from JackTokenizer import JackTokenizer
-from VMWriter import VMWriter
-from SymbolTable import SymbolTable
 
-OPERATIONS = {'+': 'add',
-              '-': 'sub',
-              '*': 'call Math.multiply 2',
-              '/': 'call Math.divide 2',
-              '&': 'and',
-              '|': 'or',
-              '<': 'lt',
-              '>': 'gt',
-              '=': 'eq'
-              }
+OPERATIONS = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
 
 
 class CompilationEngine:
@@ -28,7 +17,6 @@ class CompilationEngine:
         self.indent_count = 0
         self.tokenizer = JackTokenizer(input_file_name)
         self.file_output = open(output_file_name, "w+")
-        self.vm_writer = VMWriter(output_file_name)
 
     def advance(self):
         """
@@ -96,12 +84,6 @@ class CompilationEngine:
         """
         return self.tokenizer.STRING_CONST
 
-    def current_token(self):
-        """
-        Return the current token
-        """
-        return self.tokenizer.currentToken
-
     def compileClass(self):
         """
         Compiles a complete class.
@@ -111,8 +93,7 @@ class CompilationEngine:
             self.advance()
             self.file_output.write("<class>\n")
             self.keyword_writer()
-            name = self.tokenizer.advance().value
-            jack_class = SymbolTable()
+            self.advance()
             self.identifier_writer()
             self.advance()
             self.symbol_writer()
@@ -375,7 +356,7 @@ class CompilationEngine:
 
         self.compileTerm()
         while self.TokenType() == self.SYMBOL() and \
-                self.symbol() in OPERATIONS.keys():
+                self.symbol() in OPERATIONS:
             self.symbol_writer()
             self.advance()
             self.compileTerm()
@@ -499,113 +480,3 @@ class CompilationEngine:
     def string_const_writer(self):
         """Writes the current string constant to the output file"""
         self.file_output.write(self.indentation() + "<stringConstant> " + self.identifier() + " </stringConstant>\n")
-
-    def compile_expression_list(self, jack_subroutine):
-        """Compile a subroutine call expression_list"""
-        # Handle expression list, so long as there are expressions
-        count = 0  # Count expressions
-        token = self.current_token()
-        while token != ('symbol', ')'):
-
-            if token == ('symbol', ','):
-                self.tokenizer.advance()
-
-            count += 1
-            self.compile_expression(jack_subroutine)
-            token = self.current_token()
-
-        return count
-
-    def compile_expression(self, jack_subroutine):
-        """Compile an expression"""
-        self.compile_term(jack_subroutine)
-
-        token = self.current_token()
-        while token.value in '+-*/&|<>=':
-            binary_op = self.tokenizer.advance().value
-
-            self.compile_term(jack_subroutine)
-            self.vm_writer.write(OPERATIONS[binary_op])
-
-            token = self.current_token()
-
-    def compile_term(self, jack_subroutine):
-        """Compile a term as part of an expression"""
-
-        token = self.tokenizer.advance()
-        # In case of unary operator, compile the term after the operator
-        if token.value in ['-', '~']:
-            self.compile_term(jack_subroutine)
-            if token.value == '-':
-                self.vm_writer.write('neg')
-            elif token.value == '~':
-                self.vm_writer.write('not')
-        # In case of opening parenthesis for an expression
-        elif token.value == '(':
-            self.compile_expression(jack_subroutine)
-            self.tokenizer.advance()  # )
-        elif token.type == 'integerConstant':
-            self.vm_writer.write_int(token.value)
-        elif token.type == 'stringConstant':
-            self.vm_writer.write_string(token.value)
-        elif token.type == 'keyword':
-            if token.value == 'this':
-                self.vm_writer.write_push('pointer', 0)
-            else:
-                self.vm_writer.write_int(0)  # null / false
-                if token.value == 'true':
-                    self.vm_writer.write('not')
-
-        # In case of a function call or variable name
-        elif token.type == 'identifier':
-            # Save token value as symbol and function in case of both
-            token_value = token.value
-            token_var = jack_subroutine.get_symbol(token_value)
-
-            token = self.current_token()
-            if token.value == '[':  # Array
-                self.tokenizer.advance()  # [
-                self.compile_expression(jack_subroutine)
-                self.vm_writer.write_push_symbol(token_var)
-                self.vm_writer.write('add')
-                # rebase 'that' to point to var+index
-                self.vm_writer.write_pop('pointer', 1)
-                self.vm_writer.write_push('that', 0)
-                self.tokenizer.advance()  # ]
-            else:
-                # Default class for function calls is this class
-                func_name = token_value
-                func_class = jack_subroutine.jack_class.name
-                # Used to mark whether to use the default call, a method one
-                default_call = True
-                arg_count = 0
-
-                if token.value == '.':
-                    default_call = False
-                    self.tokenizer.advance()  # .
-                    # try to load the object of the method
-                    func_obj = jack_subroutine.get_symbol(token_value)
-                    func_name = self.tokenizer.advance().value  # function name
-                    # If this is an object, call as method
-                    if func_obj:
-                        func_class = token_var.type  # Use the class of the object
-                        arg_count = 1  # Add 'this' to args
-                        self.vm_writer.write_push_symbol(token_var)  # push "this"
-                    else:
-                        func_class = token_value
-                    token = self.current_token()
-
-                # If in-fact a function call
-                if token.value == '(':
-                    if default_call:
-                        # Default call is a method one, push this
-                        arg_count = 1
-                        self.vm_writer.write_push('pointer', 0)
-
-                    self.tokenizer.advance()  # (
-                    arg_count += self.compile_expression_list(jack_subroutine)
-                    self.vm_writer.write_call(func_class, func_name, arg_count)
-                    self.tokenizer.advance()  # )
-                # If a variable instead
-                elif token_var:
-                    self.vm_writer.write_push_symbol(token_var)

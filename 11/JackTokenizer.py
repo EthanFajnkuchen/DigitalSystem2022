@@ -1,4 +1,5 @@
 import re
+import sys
 
 COMMENT = "(//.*)|(/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/)"
 EMPTY_TEXT_PATTERN = re.compile("\s*")
@@ -11,13 +12,9 @@ DIGIT_PATTERN = re.compile("^\s*(\d+)\s*")
 STRING_PATTERN = re.compile("^\s*\"(.*)\"\s*")
 IDENTIFIER_PATTERN = re.compile("^\s*([a-zA-Z_][a-zA-Z1-9_]*)\s*")
 
-DEBUGGING = False
 
 
 class JackTokenizer:
-    """
-    JackTokenizer module as described in NAND2Tetris chapter 10
-    """
 
     keyword = ["CLASS", "METHOD", "FUNCTION", "CONSTRUCTOR", "INT",
                "BOOLEAN", "CHAR", "VOID", "VAR", "STATIC", "FIELD", "LET",
@@ -32,14 +29,13 @@ class JackTokenizer:
 
     def __init__(self, input_file_path):
         """
-
         :param input_file: the current file
         """
         with open(input_file_path, "r") as file:
             self.text = file.read()
         self._clear_all_comments()
         self._tokenType = None
-        self.currentToken = None
+        self._currentToken = None
 
     def _clear_all_comments(self):
         """
@@ -59,57 +55,48 @@ class JackTokenizer:
             if current_match is not None:
                 self.text = re.sub(KEY_WORD_PATTERN, "", self.text)
                 self._tokenType = JackTokenizer.KEYWORD
-                self.currentToken = current_match.group(1)
+                self._currentToken = current_match.group(1)
             else:
                 current_match = re.match(SYMBOL_PATTERN, self.text)
                 if current_match is not None:
                     self.text = re.sub(SYMBOL_PATTERN, "", self.text)
                     self._tokenType = JackTokenizer.SYMBOL
-                    self.currentToken = current_match.group(1)
+                    self._currentToken = current_match.group(1)
                 else:
                     current_match = re.match(DIGIT_PATTERN, self.text)
                     if current_match is not None:
                         self.text = re.sub(DIGIT_PATTERN, "", self.text)
                         self._tokenType = JackTokenizer.INT_CONST
-                        self.currentToken = current_match.group(1)
+                        self._currentToken = current_match.group(1)
                     else:
                         current_match = re.match(STRING_PATTERN, self.text)
                         if current_match is not None:
                             self.text = re.sub(STRING_PATTERN, "", self.text)
                             self._tokenType = JackTokenizer.STRING_CONST
-                            self.currentToken = current_match.group(1)
+                            self._currentToken = current_match.group(1)
                         else:
                             current_match = re.match(IDENTIFIER_PATTERN, self.text)
                             if current_match is not None:
                                 self.text = re.sub(IDENTIFIER_PATTERN, "", self.text)
                                 self._tokenType = JackTokenizer.IDENTIFIER
-                                self.currentToken = current_match.group(1)
+                                self._currentToken = current_match.group(1)
 
     def tokenType(self):
         return self._tokenType
 
     def keyWord(self):
-        return self.currentToken
+        return self._currentToken
 
     def symbol(self):
-        return self.currentToken
+        return self._currentToken
 
     def identifier(self):
-        return self.currentToken
+        return self._currentToken
 
     def intVal(self):
-        return int(self.currentToken)
+        return int(self._currentToken)
 
     def stringVal(self):
-        return self.currentToken
-
-    @property
-    def currentToken(self):
-        return self.currentToken
+        return self._currentToken
 
 
-if __name__ == "__main__":
-    a = JackTokenizer("Square.jack")
-    while a.hasMoreTokens():
-        a.advance()
-        print(a.keyWord())

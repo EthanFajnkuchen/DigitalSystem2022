@@ -1,0 +1,206 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Screen.jack
+
+/**
+ * A library of functions for displaying graphics on the screen.
+ * The Hack physical screen consists of 256 rows (indexed 0..255, top to bottom)
+ * of 512 pixels each (indexed 0..511, left to right). The top left pixel on 
+ * the screen is indexed (0,0).
+ */
+class Screen {
+
+    static boolean white;
+	static boolean black;
+	static boolean color;
+	static Array screen;
+
+    /** Initializes the Screen. */
+    function void init() 
+    {
+        let screen = 16384;
+		let white = false;
+		let black = true;
+		let color = black;
+		return;
+    }
+
+    /** Erases the entire screen. */
+    function void clearScreen() 
+    {
+        var int i;
+		let i = 0;
+		while (i < 8192)
+        {
+			let screen[i] = white;
+		}
+		return;
+    }
+
+    /** Sets the current color, to be used for all subsequent drawXXX commands.
+     *  Black is represented by true, white by false. */
+    function void setColor(boolean b) 
+    {
+        let color = b;
+		return;
+    }
+
+    /** Draws the (x,y) pixel, using the current color. */
+    function void drawPixel(int x, int y)
+    {
+        var int adr;
+		var int m;
+		
+		let adr = (y * 32) + (x / 16);
+		let m = Math.two_to_the(x & 15);
+		
+		if (~(color)) {
+			let screen[adr] = screen[adr] & ~m;
+		}
+		else 
+        {
+            let screen[adr] = screen[adr] | m;
+		}
+		return;
+    }
+
+    function void DiagonalLine(int x, int y, int dx, int dy) 
+    {
+        var int prop, i, j;
+        let prop = 0;
+        let i = 0;
+        let j = 0;
+        while ((~(i > dx)) & (~(j < dy))) {
+            do Screen.drawPixel(i + x, j + y);
+            if (prop > -1) 
+            {
+                let prop = prop + dy;
+                let i = i + 1;	
+            } 
+            else 
+            {
+                let prop = prop + dx;
+                let j = j - 1;
+            }
+        }
+        return;    
+    }
+    /** Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color. */
+    function void drawLine(int x1, int y1, int x2, int y2) 
+    {
+        var int sx, sy , dx , dy;
+		var int i, j , prop;
+        var int k;
+
+		
+		let dx = x2 - x1;
+    	let dy = y2 - y1;
+		let sx = Math.min(x1, x2);
+		let sy = Math.min(y1, y2);
+
+        let i = 0;
+		let j = 0;
+        let prop = 0;
+		
+		// draw diagonal lines
+		if (((dx > 0) & (dy < 0)) | ((dx < 0) & (dy > 0)) ) 
+        {
+    		if (dy < 0) 
+            {
+    			do Screen.DiagonalLine(x1, y1, dx, dy);
+    		} 
+            else 
+            {
+    			do Screen.DiagonalLine(x2, y2, -dx, -dy);
+    		}
+    		return;
+    	} 
+        else 
+        {
+    		let dx = Math.abs(dx);
+    		let dy = Math.abs(dy);
+    	}
+		
+        // checking if dx or dy is 0
+    	if (dy = 0) {
+    		do Screen.VertLine(sx, sy, dx);
+    		return;
+    	}
+
+    	if (dx = 0) 
+        {
+            let k = 0;
+            while (~(k > dy)) {
+                do Screen.drawPixel (sx, sy + k);
+                let k = k + 1;
+            }
+    		return;
+		}
+		
+		while (~(i > dx) & ~(j > dy))
+        {
+			do Screen.drawPixel(sx + i, sy + j);
+			if (prop < 0) 
+            {
+                let prop = prop + dy;
+				let i = i + 1;			
+			}
+			else 
+            {
+                let prop= prop - dx;
+				let j = j + 1;
+			}
+		}		
+		return;
+    }
+	
+
+
+    /** Draws a filled rectangle whose top left corner is (x1, y1)
+     * and bottom right corner is (x2,y2), using the current color. */
+    function void drawRectangle(int x1, int y1, int x2, int y2) 
+    {
+        var int sx , sy , dx , dy;
+		var int i;
+
+        let sx = Math.min(x1, x2);
+		let sy = Math.min(y1, y2);
+		let dx = Math.abs(x2 - x1);
+		let dy = Math.abs(y2 - y1);
+		
+		let i = 0;
+		while (i < dy) 
+        {
+            do Screen.VertLine(sx, sy + i, dx); 
+			let i = i + 1;
+		}
+		return;
+    }
+
+    /** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
+    function void drawCircle(int x, int y, int r) 	
+	{
+		var int dy;
+		var int sqrtd;
+		
+		let dy = -r;
+		while (~(dy > r)) {
+			let sqrtd = Math.sqrt((r * r) - (dy * dy));
+            do Screen.VertLine(x - sqrtd, y + dy , 2 * sqrtd);
+			let dy = dy + 1;
+		}
+		return;
+	}
+
+    function void VertLine(int x, int y, int param) 
+    {
+        var int i;
+        let i = 0;
+        while (~(i > param)) {
+            do Screen.drawPixel(x + i, y);
+            let i = i + 1;
+        }
+        return;
+    }
+}

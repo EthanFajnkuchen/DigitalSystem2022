@@ -1,0 +1,2 @@
+python
+python VMTranslator.py path/to/file.asm

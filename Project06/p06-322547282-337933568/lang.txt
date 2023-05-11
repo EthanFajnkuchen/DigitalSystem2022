@@ -1,2 +1,0 @@
-python
-python HackAssembler.py path/to/file.asm
